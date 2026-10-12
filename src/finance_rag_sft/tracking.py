@@ -136,7 +136,8 @@ def log_run(folder: Path, register: bool = True) -> str:
             for e in train["epochs"]:
                 for dim, ms in e["val"].items():
                     mlflow.log_metrics(
-                        {"val_" + _metric_key(m, dim): v for m, v in ms.items()}, step=e["epoch"]
+                        {"val_" + _metric_key(m, dim): v for m, v in ms.items()},
+                        step=round(e["epoch"]),
                     )
             for point in train.get("loss_curve", []):
                 mlflow.log_metric("train_loss", point["loss"], step=point["step"])
