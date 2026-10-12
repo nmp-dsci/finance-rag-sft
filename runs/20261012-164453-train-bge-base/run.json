@@ -17,7 +17,7 @@
   },
   "device": "mps",
   "code_sha": "807b465",
-  "mlflow_run_id": null,
+  "mlflow_run_id": "3747220ae1554a1cbebead9ce018e4a9",
   "note": "",
   "train": {
     "config": {
