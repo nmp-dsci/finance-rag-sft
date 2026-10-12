@@ -34,7 +34,9 @@ def test_groups_join_passages_through_a_shared_question(rows: list[tuple[str, st
     assert groups[a] == groups[b]
 
 
-def test_split_is_leak_free_deterministic_and_reloads(rows: list[tuple[str, str]], tmp_path: Path) -> None:
+def test_split_is_leak_free_deterministic_and_reloads(
+    rows: list[tuple[str, str]], tmp_path: Path
+) -> None:
     m1 = build_split(rows, tmp_path / "v1")
     m2 = build_split(rows, tmp_path / "again")
     assert m1["fingerprint"] == m2["fingerprint"]

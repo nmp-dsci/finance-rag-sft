@@ -1,0 +1,38 @@
+# finance-rag-sft containers. MLflow is the platform's (nmp-central-ai), reached on its
+# external network as http://mlflow:5000. No database or MLflow service here (PLATFORM.md rule 7).
+#
+#   docker compose run --rm train smoke        # the arm64 CPU image on the Mac
+#   docker compose run --rm train train        # CPU training: slow; use the Mac natively or a CUDA host
+#   docker compose up viewer                   # http://127.0.0.1:8084
+#   docker compose -f compose.yaml -f compose.gpu.yaml run --rm train train   # on a CUDA host
+services:
+  train:
+    build: { context: ., target: train, args: { GIT_SHA: "${GIT_SHA:-local}" } }
+    image: ghcr.io/nmp-dsci/finance-rag-sft:train-${GIT_SHA:-local}
+    environment:
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI_DOCKER:-http://mlflow:5000}
+      FINRAG_ENV: ${FINRAG_ENV:-local}
+      HF_TOKEN: ${HF_TOKEN:-}
+    volumes:
+      - hf-cache:/cache/hf
+      - ./runs:/app/runs
+      - ./outputs:/app/outputs
+      - ./data/cache:/app/data/cache
+    networks: [nmp-central]
+  viewer:
+    build: { context: ., target: viewer, args: { GIT_SHA: "${GIT_SHA:-local}" } }
+    image: ghcr.io/nmp-dsci/finance-rag-sft:viewer-${GIT_SHA:-local}
+    environment:
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI_DOCKER:-http://mlflow:5000}
+    ports: ["127.0.0.1:8084:8084"]
+    volumes:
+      - hf-cache:/cache/hf
+      - ./runs:/app/runs:ro
+      - ./outputs:/app/outputs:ro
+      - ./data/cache:/app/data/cache
+    networks: [nmp-central]
+volumes:
+  hf-cache: {}
+networks:
+  nmp-central:
+    external: true

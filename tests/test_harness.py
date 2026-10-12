@@ -31,7 +31,9 @@ def test_per_query_metrics() -> None:
 
 def test_aggregate_matches_hand_average() -> None:
     pids = ["p1", "p2"]
-    res = score_matrix(np.array([[1.0, 0.0], [1.0, 0.0]]), pids, ["a", "b"], {"a": ["p1"], "b": ["p2"]})
+    res = score_matrix(
+        np.array([[1.0, 0.0], [1.0, 0.0]]), pids, ["a", "b"], {"a": ["p1"], "b": ["p2"]}
+    )
     assert aggregate(res)["recall@1"] == 0.5
 
 
