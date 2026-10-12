@@ -302,13 +302,19 @@ def create_app() -> FastAPI:
             raise HTTPException(400, f"{doc['run_id']} has dims {dims}, not {dim}")
         return dim
 
-    def _vs(doc: dict[str, Any], vs: str, dim: str) -> dict[str, Any]:
+    def _own_dim(doc: dict[str, Any], dim: str) -> str:
+        """The other side of a comparison uses `dim` when it has it, else its full size:
+        BM25 has only "lexical", bge-small has 384 where bge-base has 768."""
+        dims: list[str] = doc.get("dims") or []
+        if not dims:
+            raise HTTPException(400, f"{doc['run_id']} has no per-question results")
+        return dim if dim in dims else dims[0]
+
+    def _vs(doc: dict[str, Any], vs: str, dim: str) -> tuple[dict[str, Any], str]:
         other = run_or_404(vs)
         if (other["split"], other["eval_split"]) != (doc["split"], doc["eval_split"]):
             raise HTTPException(400, "runs scored different splits")
-        if dim not in (other.get("dims") or []):
-            raise HTTPException(400, f"{vs} has no dim {dim}")
-        return other
+        return other, _own_dim(other, dim)
 
     @app.get("/api/runs/{run_id}/queries")
     def run_queries(
@@ -324,7 +330,7 @@ def create_app() -> FastAPI:
         d = _dim(doc, dim)
         s = split()
         mine = runs.read_queries(run_id)
-        theirs = runs.read_queries(_vs(doc, vs, d)["run_id"]) if vs else None
+        theirs, vd = (runs.read_queries(vs), _vs(doc, vs, d)[1]) if vs else (None, d)
         if filter_name in ("fixed", "broken") and theirs is None:
             raise HTTPException(400, f"filter={filter_name} needs vs=<run>")
         needle = q.lower().strip()
@@ -341,7 +347,7 @@ def create_app() -> FastAPI:
                 "hit": rank <= 10,
             }
             if theirs is not None:
-                other = theirs[qid]["ranks"][d]["golden_ranks"][0]
+                other = theirs[qid]["ranks"][vd]["golden_ranks"][0]
                 a, b = rank <= 10, other <= 10
                 item["vs_golden_rank"] = other
                 item["change"] = (
@@ -364,7 +370,14 @@ def create_app() -> FastAPI:
                 raise HTTPException(400, f"unknown filter {filter_name}")
             if keep:
                 items.append(item)
-        return {"total": len(items), "dim": d, "items": items[offset : offset + limit]}
+        out: dict[str, Any] = {
+            "total": len(items),
+            "dim": d,
+            "items": items[offset : offset + limit],
+        }
+        if vs:
+            out["vs_dim"] = vd
+        return out
 
     def _block(
         doc: dict[str, Any], row: dict[str, Any], dim: str, s: Split, golden: set[str]
@@ -395,10 +408,10 @@ def create_app() -> FastAPI:
         golden = set(s.golden[qid])
         vs_block = None
         if vs:
-            other = _vs(doc, vs, d)
+            other, vd = _vs(doc, vs, d)
             orow = runs.read_queries(vs).get(qid)
             if orow is not None:
-                vs_block = _block(other, orow, d, s, golden)
+                vs_block = _block(other, orow, vd, s, golden) | {"dim": vd}
         return {
             "qid": qid,
             "text": s.query_text[qid],
@@ -414,14 +427,13 @@ def create_app() -> FastAPI:
         da, db = run_or_404(a), run_or_404(b)
         if (da["split"], da["eval_split"]) != (db["split"], db["eval_split"]):
             raise HTTPException(400, "runs scored different splits")
-        for doc in (da, db):
-            if dim not in (doc.get("dims") or []):
-                raise HTTPException(400, f"{doc['run_id']} has no dim {dim}")
-        c = compare_ranks(runs.golden_ranks(a, dim), runs.golden_ranks(b, dim))
+        dim_a, dim_b = _own_dim(da, dim), _own_dim(db, dim)
+        c = compare_ranks(runs.golden_ranks(a, dim_a), runs.golden_ranks(b, dim_b))
         return {
             "a": _summary(da),
             "b": _summary(db),
-            "dim": dim,
+            "dim": dim_a,
+            "dim_b": dim_b,
             **{k: v for k, v in c.items() if not k.endswith("_qids")},
         }
 

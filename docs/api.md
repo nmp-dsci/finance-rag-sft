@@ -159,7 +159,7 @@ type Compare = {
   rank_shift: { bucket: string; count: number }[];   // "up 10+", "up 4-9", "up 1-3", "same", "down 1-3", "down 4-9", "down 10+"
 };
 ```
-Both runs must share `split`, `eval_split` and the dim; otherwise 400.
+Both runs must share `split` and `eval_split`; otherwise 400. Each side uses `dim` when it has it, else its own full size (BM25: `"lexical"`, bge-small: `"384"`); the response names both as `dim` and `dim_b`. The same rule applies to `vs=` on the run pages, which add `vs_dim` (list) or `vs.dim` (question).
 
 ## Live retrieval
 
