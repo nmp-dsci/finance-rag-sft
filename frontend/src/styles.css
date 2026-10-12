@@ -163,3 +163,56 @@ ul.shift .n{ text-align:right; }
 .formfoot button[type=submit]{ margin-left:auto; }
 .results{ margin-top:var(--s5); }
 .results .rank-cols h4 .tag{ margin-left:auto; }
+
+/* ---- method page ------------------------------------------------------- */
+nav.toc{ margin:var(--s5) 0 0; padding:var(--s3) var(--s4); background:var(--panel);
+         border:1px solid var(--line-2); border-radius:var(--r); }
+nav.toc ol{ list-style:none; margin:var(--s2) 0 0; padding:0; columns:3 13em; column-gap:var(--s5); font-size:var(--t-1); }
+nav.toc li{ break-inside:avoid; margin:0 0 var(--s1); }
+nav.toc li .tag{ display:inline-block; min-width:1.8em; }
+.callout.big p{ font-size:var(--t1); max-width:none; }
+.tag.src{ display:inline-block; }
+pre.formula{ font-size:var(--t-1); white-space:pre; }
+ol.flow{ list-style:none; margin:var(--s4) 0 var(--s5); padding:0; display:flex; flex-wrap:wrap; gap:var(--s2); }
+ol.flow li{ flex:1 1 130px; min-width:0; background:var(--panel); border:1px solid var(--line-2);
+            border-radius:var(--r-sm); padding:var(--s2) var(--s3); }
+ol.flow li b{ display:block; color:var(--ink); font-family:var(--mono); font-size:var(--t-1); }
+ol.flow li + li b::before{ content:'→ '; color:var(--accent); }
+.cards .card > b{ display:block; color:var(--ink); margin-bottom:var(--s1); }
+.cards .card > p:last-child{ margin-bottom:0; }
+table.alts td{ min-width:16ch; }
+table.alts td.alt-name{ color:var(--ink); font-weight:600; min-width:13ch; }
+table.alts tr.group th{ background:var(--accent-wash); color:var(--accent); }
+table.alts td:last-child{ min-width:12ch; }
+table.alts .badge{ white-space:normal; }
+.charts{ margin-top:var(--s5); }
+
+/* the worked example: a cosine matrix, darker = closer */
+ol.pairs{ list-style:none; margin:var(--s3) 0 var(--s4); padding:0; display:grid; gap:var(--s2); }
+ol.pairs li{ display:grid; grid-template-columns:max-content minmax(0,1fr); gap:var(--s1) var(--s2); align-items:baseline;
+             background:var(--panel); border:1px solid var(--line); border-radius:var(--r-sm); padding:var(--s2) var(--s3); }
+table.matrix th, table.matrix td{ padding:var(--s1) var(--s2); }
+table.matrix td.cell{ position:relative; text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; }
+table.matrix td.cell::before{ content:''; position:absolute; inset:2px; border-radius:3px; background:var(--accent);
+                              opacity:calc(var(--w, 0) * .38); }
+table.matrix td.cell > span{ position:relative; }
+table.matrix td.cell.diag{ box-shadow:inset 0 0 0 2px var(--accent); font-weight:600; color:var(--ink); }
+table.matrix td.cell.best > span{ text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:3px; }
+.batch-example .rank-cols{ grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr)); }
+
+/* line charts: SVG for the line, HTML for every label */
+.linechart .plot{ position:relative; height:160px; margin:var(--s4) 0 0 3.6em;
+                  border-left:1px solid var(--line-3); border-bottom:1px solid var(--line-3); }
+.linechart svg{ position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+.linechart .line{ fill:none; stroke:var(--accent); stroke-width:2; }
+.linechart .line.alt{ stroke:var(--ink-2); }
+.linechart .vmark{ stroke:var(--line-3); stroke-width:1; stroke-dasharray:3 3; }
+.linechart .vmark.on{ stroke:var(--accent); stroke-dasharray:none; stroke-width:2; }
+.linechart .ytick{ position:absolute; right:calc(100% + var(--s1)); transform:translateY(-50%); white-space:nowrap; }
+.linechart .mlabel{ position:absolute; top:calc(-1 * var(--s4)); transform:translateX(-50%); white-space:nowrap; }
+.linechart .mlabel.on{ color:var(--accent); font-weight:600; }
+.linechart .mlabel.end{ transform:translateX(-100%); }
+.linechart .xaxis{ position:relative; height:1.6em; margin-left:3.6em; }
+.linechart .xaxis span{ position:absolute; top:2px; transform:translateX(-50%); white-space:nowrap; }
+.linechart .xaxis span:first-child{ transform:none; }
+.linechart .xaxis span:last-child{ transform:translateX(-100%); }

@@ -1,9 +1,10 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { type Health, api, useGet } from './lib/api';
 
-/** The tabs, in the order the story runs: the answer → the data → the runs → try it yourself. */
+/** The tabs, in the order the story runs: the answer → how it was made → the data → the runs → try it. */
 const NAV: [string, string][] = [
   ['/', 'Overview'],
+  ['/method', 'Method'],
   ['/data', 'Data'],
   ['/runs', 'Runs'],
   ['/search', 'Search'],

@@ -39,11 +39,12 @@ src/finance_rag_sft/
   harness.py       score_matrix (rank the whole corpus), metrics, BM25 and dense retrievers, embedding cache
   train.py         M3: MNRL inside Matryoshka, epochs scored on val, one chosen
   compare.py       exact McNemar, paired bootstrap, rank shifts
+  explain.py       the Method page's worked example: MNRL on one real batch, from the harness's scores
   runs.py          run folders: runs/<id>/run.json + queries.jsonl (the record)
   tracking.py      MLflow preflight, required tags, log_run (replays a folder), model registration
   cli.py           `finrag` — smoke, split, baseline, check, train, eval, compare, runs, log-run, serve, doctor
   serving/app.py   FastAPI: the contract in docs/api.md; serves frontend/dist
-frontend/          the viewer (house UI, hue 15)
+frontend/          the viewer (house UI, hue 15); /method is the write-up of how the model was tuned
 data/splits/v1/    manifest.json, queries.jsonl, passages.jsonl (committed; IDs only)
 runs/              one folder per scored run (committed)
 outputs/           checkpoints (gitignored; the chosen one is registered in MLflow)

@@ -96,3 +96,20 @@ def test_runs_queries_and_compare(client: TestClient) -> None:
     assert cmp["fixed"] + cmp["broken"] + cmp["both_hit"] + cmp["both_miss"] == cmp["n"]
     assert client.get(f"/api/runs/{tuned}/queries", params={"filter": "fixed"}).status_code == 400
     assert client.get("/api/runs/nope").status_code == 404
+
+
+def test_method_batch_uses_the_harness_scores(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from finance_rag_sft.harness import DenseRetriever
+
+    def fake_scores(self: DenseRetriever, split: Any, questions: Any, dim: str) -> np.ndarray:
+        return np.random.default_rng(int(dim)).random((len(questions), len(split.pids)))
+
+    monkeypatch.setattr(DenseRetriever, "scores", fake_scores)
+    v = client.get("/api/method/batch", params={"n": 3, "dim": "64"}).json()
+    assert v["split"] == "train" and v["n"] == 3 and v["dim"] == "64" and v["scale"] == 20
+    assert [m["retriever"] for m in v["models"]] == ["bge-base"]  # no tuned checkpoint on disk
+    assert len(v["models"][0]["sims"]) == 3 and len(v["models"][0]["matryoshka"]) == 5
+    assert client.get("/api/method/batch", params={"split": "test"}).status_code == 422
+    assert client.get("/api/method/batch", params={"n": 40}).status_code == 422

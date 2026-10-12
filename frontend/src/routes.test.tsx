@@ -11,6 +11,7 @@ import {
   dataPassagePath,
   dataPath,
   dataQuestionPath,
+  methodPath,
   runPath,
   runQuestionPath,
   runsPath,
@@ -34,12 +35,12 @@ function renderAt(url: string, overrides: Overrides = {}) {
 const h1 = (name: RegExp | string) => screen.findByRole('heading', { level: 1, name });
 
 describe('shell', () => {
-  it('shows the brand, the four tabs and the health pill', async () => {
+  it('shows the brand, the five tabs and the health pill', async () => {
     renderAt('/');
     expect(await screen.findByText(`api ok · ${fx.SHA}`)).toBeTruthy();
     expect(screen.getByText(/^mlflow /).textContent).toBe('mlflow ● up');
     const nav = screen.getByRole('navigation', { name: 'Pages' });
-    expect(within(nav).getAllByRole('link').map((a) => a.textContent)).toEqual(['Overview', 'Data', 'Runs', 'Search']);
+    expect(within(nav).getAllByRole('link').map((a) => a.textContent)).toEqual(['Overview', 'Method', 'Data', 'Runs', 'Search']);
     expect(screen.getByRole('link', { name: 'finance-rag-sft' })).toBeTruthy();
     expect(screen.getByRole('contentinfo').textContent).toContain(fx.SHA);
   });
@@ -355,6 +356,48 @@ describe('/search', () => {
   });
 });
 
+describe('/method', () => {
+  it('explains the run from its record: recipe, every section, the epoch table and the charts', async () => {
+    const { fetchMock } = renderAt(methodPath());
+    expect(await h1(/How bge-base was fine-tuned/)).toBeTruthy();
+    // three recorded epochs → 525 steps, warmup ceil(0.1 × 525) = 53
+    expect(await screen.findByText(/linear from 0 over the first 53 steps/)).toBeTruthy();
+    expect(fetched(fetchMock)).toContain(`/api/runs/${fx.RUN_TRAIN}`);
+    const pairs = screen.getByText('training pairs (question, golden passage)').previousElementSibling;
+    expect(pairs?.textContent).toBe('5,512');
+    const toc = screen.getByRole('navigation', { name: 'On this page' });
+    const anchors = within(toc).getAllByRole('link').map((a) => a.getAttribute('href'));
+    for (const href of anchors) expect(document.querySelector(href!)).toBeTruthy();
+    expect(anchors).toHaveLength(19);
+    expect(screen.getByRole('img', { name: /Training loss/ })).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'Learning rate by step' })).toBeTruthy();
+    expect(screen.getAllByText('✓ chosen')).toHaveLength(1);
+  });
+
+  it('the worked example shows both matrices and names the question the tuned model rescued', async () => {
+    renderAt(methodPath());
+    const t = await screen.findByText(/Q2: inside this batch the base model/);
+    expect(t.textContent).toContain('ranks 11');
+    expect(screen.getAllByRole('table', { name: /Cosine similarity of each question/ })).toHaveLength(2);
+    expect(screen.getAllByText(/the number training logs/)).toHaveLength(2);
+  });
+
+  it('the batch lens is the state: another batch bumps ?seed=, val is asked for by name', async () => {
+    const { router, fetchMock } = renderAt(methodPath({ batch: 'val' }));
+    await screen.findByText(/These pairs come from val/);
+    expect(fetched(fetchMock)).toContain('/api/method/batch?split=val&n=4&seed=0&dim=768');
+    fireEvent.click(screen.getByRole('button', { name: '↻ another batch' }));
+    await waitFor(() => expect(new URLSearchParams(router.state.location.search).get('seed')).toBe('1'));
+  });
+
+  it('before any tuned run it still reads, from the recipe file', async () => {
+    renderAt(methodPath(), { 'GET /api/overview': fx.overviewEmpty });
+    expect(await h1(/How bge-base was fine-tuned/)).toBeTruthy();
+    expect(screen.getByText('No train run yet: M3 writes one row per epoch here.')).toBeTruthy();
+    expect(screen.getByText(/linear from 0 over the first/)).toBeTruthy();
+  });
+});
+
 describe('the URL grammar: every address the viewer builds lands on the page it names', () => {
   async function land(url: string) {
     mockApi();
@@ -376,6 +419,7 @@ describe('the URL grammar: every address the viewer builds lands on the page it 
     [runQuestionPath(fx.RUN_TUNED, fx.QID, { vs: fx.RUN_BASE }), ['shell', 'run-question']],
     [runQuestionPath(`tuned:${fx.RUN_TRAIN}`, fx.QID), ['shell', 'run-question']],
     [searchPath({ q: 'What is EBITDA?', r: 'bm25,bge-base' }), ['shell', 'search']],
+    [methodPath({ batch: 'val', dim: '64', seed: 3 }), ['shell', 'method']],
     ['/runs/a/b/c', ['shell', 'missing']],
   ])('%s', async (url, ids) => {
     const got = await land(url);

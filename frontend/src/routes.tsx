@@ -1,6 +1,7 @@
 import { Link, type RouteObject, useRouteError } from 'react-router-dom';
 import { Shell } from './Shell';
 import { Data, DataPassage, DataQuestion } from './pages/Data';
+import { Method } from './pages/Method';
 import { Overview } from './pages/Overview';
 import { RunQuestion } from './pages/Question';
 import { Run, Runs } from './pages/Runs';
@@ -18,6 +19,7 @@ export const routes: RouteObject[] = [
     errorElement: <Crash />,
     children: [
       { id: 'overview', path: '/', element: <Overview /> },
+      { id: 'method', path: '/method', element: <Method /> },
       {
         id: 'data',
         path: '/data',

@@ -256,6 +256,69 @@ export function Histogram({
   );
 }
 
+/**
+ * A line over steps, as inline SVG; every label is HTML positioned in percent, so text never
+ * stretches with the plot. `marks` are vertical lines (epoch ends); the `on` one is emphasised.
+ */
+export function LineChart({
+  title,
+  points,
+  xMax,
+  yMax,
+  yTicks,
+  marks = [],
+  caption,
+  alt = false,
+}: {
+  title: string;
+  points: [number, number][];
+  xMax: number;
+  yMax: number;
+  yTicks: [number, string][];
+  marks?: { x: number; label: string; on?: boolean }[];
+  caption: ReactNode;
+  alt?: boolean;
+}) {
+  const W = 600;
+  const H = 160;
+  const x = (v: number) => (xMax > 0 ? (v / xMax) * W : 0);
+  const y = (v: number) => H - (yMax > 0 ? Math.min(v / yMax, 1) : 0) * H;
+  const d = points.map(([a, b], i) => `${i ? 'L' : 'M'}${x(a).toFixed(1)},${y(b).toFixed(1)}`).join(' ');
+  const left = (v: number) => `${((v / Math.max(xMax, 1)) * 100).toFixed(2)}%`;
+  return (
+    <figure className="fig linechart">
+      <div className="fig-title">{title}</div>
+      <div className="plot">
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={title}>
+          {marks.map((m) => (
+            <line key={m.x} className={`vmark ${m.on ? 'on' : ''}`} x1={x(m.x)} x2={x(m.x)} y1={0} y2={H} vectorEffect="non-scaling-stroke" />
+          ))}
+          <path className={`line ${alt ? 'alt' : ''}`} d={d} vectorEffect="non-scaling-stroke" />
+        </svg>
+        {yTicks.map(([v, label]) => (
+          <span key={label} className="ytick tag" style={{ top: `${((y(v) / H) * 100).toFixed(2)}%` }}>
+            {label}
+          </span>
+        ))}
+        {marks.filter((m) => m.label).map((m) => (
+          <span
+            key={m.x}
+            className={`mlabel tag ${m.on ? 'on' : ''} ${m.x > xMax * 0.92 ? 'end' : ''}`}
+            style={{ left: left(m.x) }}
+          >
+            {m.label}
+          </span>
+        ))}
+      </div>
+      <div className="xaxis tag">
+        <span style={{ left: '0%' }}>0</span>
+        <span style={{ left: '100%' }}>{int(xMax)} steps</span>
+      </div>
+      <figcaption>{caption}</figcaption>
+    </figure>
+  );
+}
+
 /** Where the golden passage moved, this run against the other: up is better. */
 export function RankShift({ rows }: { rows: { bucket: string; count: number }[] }) {
   const widths = scale(rows.map((r) => r.count));

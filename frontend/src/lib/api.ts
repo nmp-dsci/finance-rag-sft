@@ -57,6 +57,7 @@ export type Run = RunSummary & {
     chosen: { epoch: number; checkpoint: string; by: string };
     train_seconds: number;
     n_pairs: number;
+    loss_curve?: { step: number; loss: number }[];
   };
   check?: { reference: number; got: number; metric: string; note: string };
 };
@@ -176,6 +177,30 @@ export type SearchResponse = {
   results: { retriever: string; label: string; dim: string; ms: number; top: Hit[] }[];
 };
 
+// ── method: the loss's view of one batch ─────────────────────────────────
+export type MethodSplit = 'train' | 'val';
+export type MethodModel = {
+  retriever: string;
+  label: string;
+  sims: number[][]; // [question i][passage j], cosine at `dim`
+  p_correct: number[]; // softmax probability on the question's own passage
+  loss: number[]; // MNRL per question: −log p_correct
+  mean_loss: number;
+  corpus_rank: number[]; // the same passage's rank among every passage in the corpus
+  matryoshka: { dim: string; mean_loss: number }[];
+  matryoshka_loss: number; // the sum over the five sizes: what training logs as "loss"
+};
+export type MethodBatch = {
+  split: MethodSplit;
+  n: number;
+  seed: number;
+  dim: string;
+  scale: number;
+  corpus: number;
+  pairs: { qid: string; question: string; pid: string; passage: string }[];
+  models: MethodModel[];
+};
+
 // ── endpoints ─────────────────────────────────────────────────────────────
 type Params = Record<string, string | number | null | undefined>;
 
@@ -208,6 +233,8 @@ export const api = {
   compare: (a: string, b: string, dim: string) => `/api/compare${qs({ a, b, dim })}`,
   retrievers: () => '/api/retrievers',
   search: () => '/api/search',
+  methodBatch: (p: { split?: MethodSplit; n?: number; seed?: number; dim?: string }) =>
+    `/api/method/batch${qs(p)}`,
 };
 
 // ── fetching ──────────────────────────────────────────────────────────────

@@ -53,6 +53,7 @@ type Run = RunSummary & {
     chosen: { epoch: number; checkpoint: string; by: string };   // by: "val recall@10 at 768"
     train_seconds: number;
     n_pairs: number;
+    loss_curve: { step: number; loss: number }[];   // the logged loss, every 10 steps
   };
   check?: { reference: number; got: number; metric: string; note: string };  // kind === "check"
 };
@@ -178,3 +179,27 @@ e.g. `bm25` (`["lexical"]`), `bge-small` (`["384","64"]`), `bge-base` (`["768","
 }
 ```
 `dim` applies to dense retrievers; BM25 ignores it and reports `"lexical"`.
+
+## Method: the loss's view of one batch
+
+`GET /api/method/batch?split=train|val&n=4&seed=0&dim=768` →
+```ts
+{
+  split: "train" | "val"; n: number; seed: number; dim: string;   // dim: 768 | 512 | 256 | 128 | 64
+  scale: 20;                       // MNRL's scale (temperature 0.05)
+  corpus: number;                  // passages in the corpus (6757)
+  pairs: { qid: string; question: string; pid: string; passage: string }[];   // no question or passage twice
+  models: {
+    retriever: string; label: string;               // "bge-base", then the overview's tuned model when present
+    sims: number[][];                               // [question i][passage j], cosine at `dim`
+    p_correct: number[]; loss: number[];            // softmax(20·s_i)_i and −log of it: MNRL per row
+    mean_loss: number;
+    corpus_rank: number[];                          // the pair's passage ranked against the whole corpus
+    matryoshka: { dim: string; mean_loss: number }[];   // the same batch at 768, 512, 256, 128, 64
+    matryoshka_loss: number;                        // their sum: what training logs as "loss"
+  }[];
+}
+```
+`n` is 2–8; test is refused (422), because the page explains training and test is scored, never inspected
+for it. Scores come from the harness (`DenseRetriever.scores`), so truncation and normalisation match
+scoring. `tests/test_explain.py` checks the loss against Sentence Transformers' MNRL.

@@ -25,6 +25,7 @@ export const runPath = (runId: string, lens?: Lens): string => `/runs/${enc(runI
 export const runQuestionPath = (runId: string, qid: string, lens?: Lens): string =>
   `/runs/${enc(runId)}/${enc(qid)}${search(lens)}`;
 export const searchPath = (lens?: Lens): string => `/search${search(lens)}`;
+export const methodPath = (lens?: Lens): string => `/method${search(lens)}`;
 
 // ── encoding ──────────────────────────────────────────────────────────────
 /** Escape one path segment, leaving `:` and `,` readable (both legal in a path, RFC 3986 §3.3). */

@@ -516,6 +516,30 @@ def create_app() -> FastAPI:
             "results": results,
         }
 
+    # ---- method: the loss's view of one batch --------------------------------------------
+
+    @app.get("/api/method/batch")
+    def method_batch(
+        split_name: str = Query("train", alias="split", pattern="^(train|val)$"),
+        n: int = Query(4, ge=2, le=8),
+        seed: int = Query(0, ge=0),
+        dim: str = Query("768", pattern="^(768|512|256|128|64)$"),
+    ) -> dict[str, Any]:
+        from finance_rag_sft.explain import batch_view
+
+        s = split()
+        tuned = _latest("eval", lambda d: bool((d.get("retriever") or {}).get("checkpoint")))
+        cat = _catalogue()
+        ids = ["bge-base"]
+        tid = f"tuned:{(tuned or {}).get('retriever', {}).get('train_run')}"
+        if tid in cat:
+            ids.append(tid)
+        else:
+            ids += [k for k in cat if k.startswith("tuned:")][:1]
+        scorers = [(rid, _retriever(rid)) for rid in ids]
+        with lock:
+            return batch_view(s, scorers, split_name, n, seed, dim)
+
     _mount_frontend(app)
     return app
 

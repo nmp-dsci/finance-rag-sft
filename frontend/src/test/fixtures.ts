@@ -6,6 +6,7 @@ import type {
   Compare,
   Health,
   Hit,
+  MethodBatch,
   Metrics,
   Overview,
   PassageDetail,
@@ -194,7 +195,57 @@ export const runTrain: Run = {
     chosen: { epoch: 2, checkpoint: `outputs/${RUN_TRAIN}/checkpoint-350`, by: 'val recall@10 at 768' },
     train_seconds: 1490.5,
     n_pairs: 5512,
+    loss_curve: [
+      { step: 10, loss: 1.9 },
+      { step: 175, loss: 0.41 },
+      { step: 350, loss: 0.29 },
+      { step: 525, loss: 0.12 },
+    ],
   },
+};
+
+/** `/api/method/batch`, two pairs: Q2's passage is outside the base model's top 10. */
+export const methodBatch: MethodBatch = {
+  split: 'train',
+  n: 2,
+  seed: 0,
+  dim: '768',
+  scale: 20,
+  corpus: 6757,
+  pairs: [
+    { qid: QID, question: Q_TEXT, pid: PID, passage: P_TEXT },
+    { qid: QID_2, question: Q2_TEXT, pid: PID_2, passage: P2_TEXT },
+  ],
+  models: [
+    {
+      retriever: 'bge-base',
+      label: 'bge-base (base)',
+      sims: [
+        [0.72, 0.55],
+        [0.52, 0.76],
+      ],
+      p_correct: [0.9734, 0.9945],
+      loss: [0.027, 0.0055],
+      mean_loss: 0.0162,
+      corpus_rank: [2, 11],
+      matryoshka: ['768', '512', '256', '128', '64'].map((dim) => ({ dim, mean_loss: 0.02 })),
+      matryoshka_loss: 0.1,
+    },
+    {
+      retriever: `tuned:${RUN_TRAIN}`,
+      label: 'bge-base tuned (epoch 2)',
+      sims: [
+        [0.7, 0.2],
+        [0.25, 0.9],
+      ],
+      p_correct: [0.9999, 1],
+      loss: [0.0001, 0],
+      mean_loss: 0.0001,
+      corpus_rank: [1, 1],
+      matryoshka: ['768', '512', '256', '128', '64'].map((dim) => ({ dim, mean_loss: 0.0001 })),
+      matryoshka_loss: 0.0005,
+    },
+  ],
 };
 
 export const runsById: Record<string, Run> = {

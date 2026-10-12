@@ -67,7 +67,9 @@ make viewer           # http://127.0.0.1:8084
 ### The viewer
 
 React + Vite on the portfolio's house UI (hue 15), served by FastAPI on :8084:
-Overview (the result and milestones), Data (browse train / val / test, questions and passages),
+Overview (the result and milestones), Method (how the model was fine-tuned: every setting and why,
+the alternatives, a live worked example of the loss on real pairs, and how to explain it),
+Data (browse train / val / test, questions and passages),
 Runs (per-question golden ranks, `?vs=<run>` to compare), Question (top 10s side by side) and
 Search (live retrieval with BM25, the base and the tuned model).
 

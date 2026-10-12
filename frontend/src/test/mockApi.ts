@@ -22,6 +22,11 @@ function route(method: string, url: URL): unknown {
       return fx.retrievers;
     case 'compare':
       return fx.compare;
+    case 'method': {
+      if (p[2] !== 'batch') return undefined;
+      const sp = url.searchParams;
+      return { ...fx.methodBatch, split: sp.get('split') ?? 'train', dim: sp.get('dim') ?? '768', seed: Number(sp.get('seed') ?? 0) };
+    }
     case 'split':
       if (p.length === 2) return fx.split;
       if (p[2] === 'queries') return p[3] ? (p[3] === fx.QID ? fx.queryDetail : undefined) : fx.queryList;
