@@ -1,0 +1,12 @@
+# M3: s63 UC1's recipe (Phil Schmid's), with the epoch chosen on val, never test.
+base_model: bge-base
+epochs: 4
+batch_size: 32
+learning_rate: 2.0e-5
+warmup_ratio: 0.1
+matryoshka_dims: [768, 512, 256, 128, 64]
+seed: 42
+pad_to_multiple_of: 64   # MPS: few tensor shapes, few kernel recompiles; harmless on CUDA
+max_steps: null
+select_dim: "768"
+select_metric: recall@10

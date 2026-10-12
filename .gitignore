@@ -1,3 +1,24 @@
-.env
-.venv/
+# Python
 __pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Hugging Face downloads, embedding caches, checkpoints (weights live in MLflow, not git)
+data/cache/
+outputs/
+
+# Node / frontend
+node_modules/
+frontend/dist/
+
+# OS / editor
+.DS_Store
