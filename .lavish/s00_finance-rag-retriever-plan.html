@@ -1,12 +1,11 @@
 <!doctype html>
-<!-- --hue:15 previews the proposed registry hue (D9). After M0, make install-house-ui writes
-     project.css with the same value and this attribute goes. house.css documents this override. -->
-<html lang="en" style="--hue:15">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Finance RAG retriever plan</title>
 <link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="project.css">
 <style>
   /* page-local layout only. Tokens come from house.css. */
   .hero{ border-bottom:1px solid var(--line-2); padding-bottom:var(--s5); margin-bottom:var(--s6); }
@@ -113,7 +112,7 @@
 <main class="wrap">
 
 <header class="hero">
-  <p class="eyebrow">finance-rag-sft &middot; Finance RAG retriever &middot; plan &middot; 2026-10-12 &middot; nothing built or trained yet</p>
+  <p class="eyebrow">finance-rag-sft &middot; Finance RAG retriever &middot; plan &middot; 2026-10-12 &middot; decisions answered &middot; built and run the same day (results first)</p>
   <h1>Does fine-tuning put the golden passage in the top 10 more often? <em>Score the base model first.</em></h1>
   <p class="lede">This repo fine-tunes <code>BAAI/bge-base-en-v1.5</code> on finance question and passage pairs, following
   use case UC1 in <a href="../../ai-engineer-fit/.lavish/s63_fine-tuning-playbook.html">s63, the fine-tuning playbook</a>.
@@ -130,6 +129,39 @@
     <div class="stat accent"><div class="n">hue 15</div><div class="l">the project's colour. It is the <b>only</b> hue left that is at least 30&deg; from all nine taken hues.</div></div>
   </div>
 </header>
+
+<section id="results">
+  <h2>Result: 87.2% &rarr; 92.6% of test questions find their golden passage in the top 10</h2>
+  <p class="sub">Built and run on 2026-10-12 on branch <code>kickoff</code>. Split v1 test: 693 questions, each ranking all
+  6,757 passages. Same harness, corpus and (empty) query prompt for every row. Checkpoint chosen on val; test scored once.</p>
+  <div class="verdict">
+    <div class="stat accent"><div class="n">+5.5 pts</div><div class="l">recall@10 at 768 dims, 95% CI <b>+3.6 to +7.4</b>. 42 questions fixed, 4 broken, exact McNemar p = 5&times;10<sup>-9</sup>.</div></div>
+    <div class="stat accent"><div class="n">64 &gt; 768</div><div class="l">tuned at 64 dims (89.6%) beats base at 768 (87.2%): +2.5 pts, CI +0.4 to +4.5, p = 0.027. <b>Target met.</b></div></div>
+    <div class="stat"><div class="n">22 min</div><div class="l">of training on the M1 Pro's GPU (MPS), 700 steps, after the padding and cache fixes. No cloud spend.</div></div>
+    <div class="stat amber"><div class="n">M5 open</div><div class="l">FiQA2018 (out of domain) was outside this PR's scope, so the guardrail is <b>not yet measured</b>.</div></div>
+  </div>
+  <div class="tablewrap" style="margin-top:var(--s4)">
+    <table>
+      <thead><tr><th>Retriever (test, n = 693)</th><th>Recall@10</th><th>nDCG@10</th><th>MRR@10</th><th>Recall@1</th></tr></thead>
+      <tbody>
+        <tr class="gate"><td><span class="what">bge-base fine-tuned, epoch 2, 768 dims</span></td><td class="n">0.926</td><td class="n">0.830</td><td class="n">0.799</td><td class="n">0.724</td></tr>
+        <tr><td><span class="what">bge-base fine-tuned, 64 dims</span></td><td class="n">0.896</td><td class="n">0.795</td><td class="n">0.763</td><td class="n">0.690</td></tr>
+        <tr><td><span class="what">bge-base, 768 dims</span><span class="why">the base this project set out to beat</span></td><td class="n">0.872</td><td class="n">0.756</td><td class="n">0.720</td><td class="n">0.639</td></tr>
+        <tr><td><span class="what">BM25</span><span class="why">bm25s, English stopwords, Snowball stemmer</span></td><td class="n">0.870</td><td class="n">0.759</td><td class="n">0.723</td><td class="n">0.645</td></tr>
+        <tr><td><span class="what">bge-small, 384 dims</span></td><td class="n">0.856</td><td class="n">0.733</td><td class="n">0.695</td><td class="n">0.606</td></tr>
+        <tr><td><span class="what">bge-base, 64 dims</span></td><td class="n">0.792</td><td class="n">0.650</td><td class="n">0.607</td><td class="n">0.521</td></tr>
+        <tr><td><span class="what">bge-small, 64 dims</span></td><td class="n">0.761</td><td class="n">0.626</td><td class="n">0.584</td><td class="n">0.498</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <dl class="kv">
+    <dt>val by epoch</dt><dd>recall@10 at 768: 0.924, <b>0.926</b>, 0.919, 0.922. Epoch 2 (<code>checkpoint-350</code>) chosen; registered as <code>finance-rag-sft-bge-base</code> v1 in MLflow.</dd>
+    <dt>harness check</dt><dd>Phil Schmid's setup: nDCG@10 0.748 against his 0.768. Across 20 split seeds the same setup ranges 0.728 to 0.773 (median 0.746), so the gap is his split's draw, not the harness.</dd>
+    <dt>baselines</dt><dd>BM25 (0.870) all but ties the base bge-base (0.872) and beats bge-small (0.856). The tuned model beats BM25 by 5.6 pts (47 fixed, 8 broken).</dd>
+    <dt>Mac</dt><dd>Sentence Transformers' trainer ran at 15&ndash;20 s/step on MPS. The cause was kernel recompiles for every new padded shape, and then memory growth into swap. Padding to multiples of 64 and emptying the MPS cache each step brought it to ~2 s/step (D4: Mac first held).</dd>
+    <dt>container</dt><dd>arm64 images built locally; <code>finrag smoke</code> inside the train image logged to central MLflow over <code>nmp-central</code>. CI builds the amd64 CUDA 12.6 image.</dd>
+  </dl>
+</section>
 
 <section id="io">
   <h2>Inputs and outputs, step by step</h2>
@@ -153,13 +185,13 @@
         </tr>
         <tr class="gate">
           <td class="id">M2</td>
-          <td><span class="what">Split v1 (test questions and the whole corpus), plus untouched retrievers, each ranking on its own</span><span class="why">BM25 (keywords), and bge-small-en-v1.5 and bge-base-en-v1.5 (vectors, at 768 and 64 dims). <b>Proposed (D10):</b> a hybrid row that fuses BM25's and bge-base's rankings.</span></td>
+          <td><span class="what">Split v1 (test questions and the whole corpus), plus untouched retrievers, each ranking on its own</span><span class="why">BM25 (keywords), and bge-small-en-v1.5 and bge-base-en-v1.5 (vectors, at 768 and 64 dims).</span></td>
           <td><span class="what">Baseline rows, one per retriever</span><span class="why">Recall@1, @5 and @10, nDCG@10 and MRR@10 for each retriever and dimension size. Each question's golden rank and top-10 passage IDs.</span></td>
           <td><code>runs/&lt;id&gt;/</code> and MLflow <code>finance-rag-sft/evals</code><span class="why">kind = baseline</span></td>
         </tr>
         <tr>
           <td class="id">M2</td>
-          <td><span class="what">Phil's random 90/10 setup</span><span class="why">corpus = test passages only, as in his notebook</span></td>
+          <td><span class="what">Phil's random 90/10 setup</span><span class="why">corpus = all 7,000 rows as separate documents; relevant = the question's own row, as in his notebook</span></td>
           <td><span class="what">Harness check</span><span class="why">bge-base nDCG@10 at 768 dims, to set beside his 0.768</span></td>
           <td>MLflow<span class="why">kind = check</span></td>
         </tr>
@@ -171,7 +203,7 @@
         </tr>
         <tr class="gate">
           <td class="id">M4</td>
-          <td><span class="what">The chosen checkpoint, split v1 test and corpus, and the M2 baseline run</span><span class="why">If D10 is yes, also tuned + BM25 fused the same way</span></td>
+          <td><span class="what">The chosen checkpoint, split v1 test and corpus, and the M2 baseline run</span></td>
           <td><span class="what">The tuned row and the comparison</span><span class="why">tuned metrics, fixed and broken counts, the exact McNemar p-value and a bootstrap 95% interval for the change, at 768 and 64 dims</span></td>
           <td><code>runs/&lt;id&gt;/</code>, MLflow and a write-up page<span class="why">kind = eval</span></td>
         </tr>
@@ -197,13 +229,8 @@
     </table>
   </div>
   <div class="callout" id="hybrid">
-    <p><b>Separate or combined?</b> As first drafted, every row is <b>one retriever ranking alone</b>. BM25 orders passages by
-    keyword overlap. bge orders them by vector cosine similarity. Neither sees the other's list. BM25 was there only as a floor.</p>
-    <p>D10 adds the combination most RAG systems actually ship: a <b>hybrid</b> row that fuses the two rankings with reciprocal
-    rank fusion (RRF). Each passage gets <code>1/(60 + rank in BM25) + 1/(60 + rank in bge)</code>, taken from each retriever's top 100,
-    and the fused list is re-sorted. It is scored on the same top 10 by the same harness, so it is just another row.</p>
-    <p class="small" style="margin-bottom:0">It adds two questions an interviewer will ask. Does fine-tuning beat simply adding BM25 (base hybrid against tuned dense)?
-    And is fine-tuning still worth it once BM25 is fused in (base hybrid against tuned hybrid)?</p>
+    <p style="margin-bottom:0"><b>Separate, not combined (D10).</b> Every row is one retriever ranking alone: BM25 by keyword overlap, bge by
+    vector cosine similarity. No hybrid row; BM25 stays a floor. It turned out to be a strong one (0.870 against the base model's 0.872).</p>
   </div>
   <p class="small">Network access: the dataset and the three models are downloaded from the Hub once and cached. Everything else stays on your Mac and the central MLflow at <code>localhost:5000</code>, unless D4 sends training to Modal.</p>
 </section>
@@ -407,14 +434,14 @@
         <tr class="gate">
           <td class="id">M2</td>
           <td><span class="what">Harness and baseline &middot; the gate</span>
-            <span class="why">One <code>score()</code> function: encode the corpus once, rank every passage, and save each question's golden rank. It is cross-checked against Sentence Transformers' <code>InformationRetrievalEvaluator</code>. Separate rows for BM25, bge-small and bge-base at 768 and 64 dims, plus a BM25 + bge-base hybrid row fused with RRF if D10 is yes. <b>Harness check:</b> rerun Phil's random 90/10 setup and land close to his 0.768.</span></td>
+            <span class="why">One <code>score()</code> function: encode the corpus once, rank every passage, and save each question's golden rank. It is cross-checked against Sentence Transformers' <code>InformationRetrievalEvaluator</code>. Separate rows for BM25, bge-small and bge-base at their full size and 64 dims. <b>Harness check:</b> rerun Phil's random 90/10 setup and land close to his 0.768.</span></td>
           <td>Mac</td>
           <td>Baseline rows are in <code>finance-rag-sft/evals</code>, each with a run folder <code>runs/&lt;id&gt;/</code> holding per-question ranks, and the harness check is within a small gap of 0.768.</td>
         </tr>
         <tr class="gate">
           <td class="id">U1</td>
           <td><span class="what">Viewer for the baseline, built alongside M2</span>
-            <span class="why">Copies vidore-v3-loop's layout: a React 18.3 + Vite 5.4 + TypeScript SPA in <code>frontend/</code>, served by FastAPI. The Overview, Data explorer, Runs, Run and Question pages read the run folders and split v1. Live retrieval covers BM25, bge-base and the hybrid. Styled with the house UI in hue 15 (D8). Includes the design lint, API tests and a routes test.</span></td>
+            <span class="why">Copies vidore-v3-loop's layout: a React 18.3 + Vite 5.4 + TypeScript SPA in <code>frontend/</code>, served by FastAPI. The Overview, Data explorer, Runs, Run and Question pages read the run folders and split v1. Live retrieval covers BM25, bge-small, bge-base and the tuned model. Styled with the house UI in hue 15 (D8). Includes the design lint, API tests and a routes test.</span></td>
           <td>Mac</td>
           <td><code>make viewer</code> serves <code>:8084</code>, every route renders in vitest, you can open any baseline miss and see its top 10, and a typed question returns results in under a second.</td>
         </tr>
@@ -428,7 +455,7 @@
         <tr>
           <td class="id">M4</td>
           <td><span class="what">Test once and compare</span>
-            <span class="why">Score the chosen checkpoint with the same <code>score()</code> on test. Compute the Recall@10 change with an exact McNemar test on the paired hits and a bootstrap 95% interval. Same for nDCG@10, at both 768 and 64 dims. If D10 is yes, also tuned hybrid against base hybrid, and base hybrid against tuned dense.</span></td>
+            <span class="why">Score the chosen checkpoint with the same <code>score()</code> on test. Compute the Recall@10 change with an exact McNemar test on the paired hits and a bootstrap 95% interval. Same for nDCG@10, at both 768 and 64 dims.</span></td>
           <td>Mac</td>
           <td>A table of base, tuned and the change, with counts and p-values, plus a write-up page.</td>
         </tr>
@@ -507,7 +534,7 @@
         <tr><td class="k">/runs/:run</td><td><span class="what">Run</span></td><td>Metrics for each dimension size, and a table of every question with its golden rank, filterable to misses. Training runs also show val Recall@10 for each epoch.</td><td><span class="badge">U1</span></td></tr>
         <tr><td class="k">/runs/:run/:qid</td><td><span class="what">Question</span></td><td>The question, its golden passage, and the top 10 with the golden passage highlighted.</td><td><span class="badge">U1</span></td></tr>
         <tr><td class="k">?vs=:run</td><td><span class="what">Compare lens</span></td><td>On Run: the fixed and broken counts, the McNemar p-value and a chart of rank changes. On Question: both top 10s side by side (mocked below).</td><td><span class="badge">U2</span></td></tr>
-        <tr><td class="k">/search</td><td><span class="what">Live retrieval</span></td><td>Type any question, then pick the retrievers (BM25, bge-base, hybrid; the tuned model joins in U2) and the dimension size (768 or 64). See each top 10 with its scores, side by side. If the text matches a dataset question, its golden passage is highlighted. The API loads each model once and reuses cached corpus embeddings, so a query takes milliseconds. It runs on the CPU, so the viewer container needs no GPU.</td><td><span class="badge">U1</span> <span class="badge">U2</span></td></tr>
+        <tr><td class="k">/search</td><td><span class="what">Live retrieval</span></td><td>Type any question, then pick the retrievers (BM25, bge-small, bge-base, and the tuned model) and the dimension size (768 or 64). See each top 10 with its scores, side by side. If the text matches a dataset question, its golden passage is highlighted. The API loads each model once and reuses cached corpus embeddings, so a query takes milliseconds. It runs on the CPU, so the viewer container needs no GPU.</td><td><span class="badge">U1</span> <span class="badge">U2</span></td></tr>
       </tbody>
     </table>
   </div>
@@ -669,7 +696,7 @@ networks: { nmp-central: { external: true } }
       <h3>pyproject.toml &middot; one lockfile, three torches</h3>
 <pre><code>[tool.uv.sources]
 torch = [
-  { index = "pytorch-cu128", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+  { index = "pytorch-cu126", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
   { index = "pytorch-cpu",   marker = "sys_platform == 'linux' and platform_machine == 'aarch64'" },
 ]   # macOS keeps PyPI's torch, which has MPS</code></pre>
     </div>
@@ -756,7 +783,6 @@ args = SentenceTransformerTrainingArguments(
     data.py             pinned download, dedupe, grouped split
     harness.py          score() + per-question ranks
     bm25.py             lexical baseline
-    hybrid.py           RRF fusion of two rankings (D10)
     train.py            MNRL + Matryoshka
     compare.py          McNemar, bootstrap
     tracking.py         MLflow tags, run folders
@@ -821,7 +847,7 @@ args = SentenceTransformerTrainingArguments(
         <tr><td><span class="what">The first app to use the house UI hits a snag: Vite won't serve <code>../.lavish/</code> in dev, or the font paths break</span></td><td><span class="badge info">unknown</span></td><td>Set <code>server.fs.allow: ['..']</code>, and check the build bundles <code>fonts/*.woff2</code> in U1. If either fails, copy the vendored files into <code>frontend/src/house/</code> with a make target and check them with <code>cmp</code>.</td></tr>
         <tr><td><span class="what">Training in Docker on the Mac is CPU-only</span></td><td><span class="badge info">known</span></td><td>Train on the Mac natively (MPS), or with the image on a CUDA host. The Mac container is for smoke runs and proving the image.</td></tr>
         <tr><td><span class="what">The CUDA image is several GB, and building amd64 on an ARM Mac is slow</span></td><td><span class="badge info">known</span></td><td>Build in CI on amd64 runners, push to GHCR, and keep weights out of the image. The arm64 CPU image is small enough to build locally.</td></tr>
-        <tr><td><span class="what">The image's CUDA version is newer than the host's driver</span></td><td><span class="badge warn">possible</span></td><td>Pin the CUDA wheel index (cu128), and have <code>finrag doctor</code> check <code>nvidia-smi</code> and the torch CUDA version before training starts.</td></tr>
+        <tr><td><span class="what">The image's CUDA version is newer than the host's driver</span></td><td><span class="badge warn">possible</span></td><td>Pin the CUDA wheel index (cu126; torch 2.14.1 has no cu128 build), and have <code>finrag doctor</code> check <code>nvidia-smi</code> and the torch CUDA version before training starts.</td></tr>
         <tr><td><span class="what">Hue 15 reads close to status red</span></td><td><span class="badge warn">likely</span></td><td>Every error state carries a text label and an icon as well as colour. "Broken" questions in the compare view get a <code>bad</code> badge with a label, not red alone.</td></tr>
         <tr><td><span class="what">Committed run folders get large</span></td><td><span class="badge">low</span></td><td>About 700 test questions &times; 10 IDs &times; 2 dimension sizes is a few hundred kB per run. Store passage IDs, not text; the API joins the text.</td></tr>
         <tr><td><span class="what">Central MLflow is down</span></td><td><span class="badge">operational</span></td><td>Run <code>make -C ../nmp-central-ai up</code>. Never fall back to a local sqlite or file store.</td></tr>
@@ -831,198 +857,25 @@ args = SentenceTransformerTrainingArguments(
 </section>
 
 <section id="decisions">
-  <h2>Decisions</h2>
-  <p class="sub">Each card shows my recommendation, already ticked. Change any, then queue it. You can also copy every answer at the bottom.</p>
-  <div class="qgrid">
-
-    <form class="q" data-lavish-question="D1" onsubmit="queueAnswer(event)">
-      <h3 data-title="Base model">D1 &middot; Which base model? <span class="badge rec">rec: bge-base</span></h3>
-      <fieldset>
-        <label class="opt-rec"><input type="radio" name="D1" value="bge-base-en-v1.5" checked> bge-base-en-v1.5 <span class="d">110M, 768 dims. Same as the reference run, so there's a number to compare against.</span></label>
-        <label><input type="radio" name="D1" value="bge-small-en-v1.5"> bge-small-en-v1.5 <span class="d">33M, 384 dims, about 3&times; faster. No reference number for this recipe.</span></label>
-        <label><input type="radio" name="D1" value="both"> Both <span class="d">Tune both. Doubles M3 and M4.</span></label>
-      </fieldset>
-      <div class="row"><button type="submit">Queue D1</button><span class="queued" aria-live="polite"></span></div>
-    </form>
-
-    <form class="q" data-lavish-question="D2" onsubmit="queueAnswer(event)">
-      <h3 data-title="Scoring corpus">D2 &middot; What does each question search? <span class="badge rec">rec: all passages</span></h3>
-      <fieldset>
-        <label class="opt-rec"><input type="radio" name="D2" value="all 6,757 unique passages" checked> All 6,757 unique passages <span class="d">Harder and closer to real RAG. Training passages act as distractors.</span></label>
-        <label><input type="radio" name="D2" value="test passages only (~676)"> Test passages only (about 676) <span class="d">As in the s63 sketch. Easier, so both scores come out higher.</span></label>
-      </fieldset>
-      <div class="row"><button type="submit">Queue D2</button><span class="queued" aria-live="polite"></span></div>
-    </form>
-
-    <form class="q" data-lavish-question="D3" onsubmit="queueAnswer(event)">
-      <h3 data-title="Split">D3 &middot; How to split? <span class="badge rec">rec: by passage</span></h3>
-      <fieldset>
-        <label class="opt-rec"><input type="radio" name="D3" value="grouped by passage 80/10/10" checked> By passage, 80/10/10 <span class="d">No leaks, with val for picking a checkpoint. Phil's split is still rerun once in M2 to check the harness.</span></label>
-        <label><input type="radio" name="D3" value="random 90/10 like Phil"> Random 90/10, like Phil's <span class="d">Directly comparable with 0.768 &rarr; 0.825, but about 6% of test leaks and there's no val split.</span></label>
-      </fieldset>
-      <div class="row"><button type="submit">Queue D3</button><span class="queued" aria-live="polite"></span></div>
-    </form>
-
-    <form class="q" data-lavish-question="D4" onsubmit="queueAnswer(event)">
-      <h3 data-title="Where to train">D4 &middot; Where does M3 train? <span class="badge rec">rec: Mac first</span></h3>
-      <fieldset>
-        <label class="opt-rec"><input type="radio" name="D4" value="Mac (MPS, fp32), Modal fallback" checked> Mac first, Modal if it's too slow <span class="d">Free. The M0 smoke run measures the time per step.</span></label>
-        <label><input type="radio" name="D4" value="Modal A10G"> Modal A10G from the start <span class="d">About $0.07 a run, and shows CUDA training. Needs a Modal account and setup.</span></label>
-        <label><input type="radio" name="D4" value="AWS EC2 g6 via Batch"> AWS g6 on EC2 <span class="d">Closest to enterprise (s63 §5). Most setup.</span></label>
-      </fieldset>
-      <div class="row"><button type="submit">Queue D4</button><span class="queued" aria-live="polite"></span></div>
-    </form>
-
-    <form class="q" data-lavish-question="D5" onsubmit="queueAnswer(event)">
-      <h3 data-title="Baseline rows">D5 &middot; Which baselines go in the M2 table? <span class="badge">multi</span></h3>
-      <p class="hint">The base bge-base row is always included.</p>
-      <fieldset>
-        <label class="opt-rec"><input type="checkbox" name="D5" value="BM25" checked> BM25 <span class="d">The lexical floor. Shows how much embeddings help at all.</span></label>
-        <label class="opt-rec"><input type="checkbox" name="D5" value="bge-small-en-v1.5" checked> bge-small-en-v1.5 <span class="d">Can a tuned base model beat a small one by more than size alone explains?</span></label>
-        <label><input type="checkbox" name="D5" value="all-MiniLM-L6-v2"> all-MiniLM-L6-v2 <span class="d">The usual starter model. A widely known reference point.</span></label>
-        <label><input type="checkbox" name="D5" value="bge-large-en-v1.5"> bge-large-en-v1.5 <span class="d">335M. Does a tuned base beat an untuned large model?</span></label>
-      </fieldset>
-      <div class="row"><button type="submit">Queue D5</button><span class="queued" aria-live="polite"></span></div>
-    </form>
-
-    <form class="q" data-lavish-question="D6" onsubmit="queueAnswer(event)">
-      <h3 data-title="Publishing">D6 &middot; What gets published? <span class="badge rec">rec: MLflow only for now</span></h3>
-      <fieldset>
-        <label class="opt-rec"><input type="radio" name="D6" value="MLflow registry only until licence checked" checked> MLflow registry only, for now <span class="d">Decide again after M4, once the dataset licence is checked.</span></label>
-        <label><input type="radio" name="D6" value="HF Hub model + card"> Hub model and card <span class="d">Public model with the before and after table.</span></label>
-        <label><input type="radio" name="D6" value="Hub + MTEB results PR"> Hub and an MTEB results pull request <span class="d">Puts the FiQA2018 row on the public leaderboard.</span></label>
-      </fieldset>
-      <div class="row"><button type="submit">Queue D6</button><span class="queued" aria-live="polite"></span></div>
-    </form>
-
-    <form class="q" data-lavish-question="D7" onsubmit="queueAnswer(event)">
-      <h3 data-title="First PR scope">D7 &middot; What goes in the first PR on <code>kickoff</code>? <span class="badge rec">rec: M0&ndash;M2, C1, U1</span></h3>
-      <fieldset>
-        <label class="opt-rec"><input type="radio" name="D7" value="M0-M2 + C1 + U1 (baseline, container, viewer)" checked> M0 to M2, C1 and U1: baseline, container and viewer <span class="d">Stops at the gate. The image is proven by a smoke run, and you browse the data and the baseline's misses in the app before any training.</span></label>
-        <label><input type="radio" name="D7" value="M0-M2 only, viewer next PR"> M0 to M2 only, with the viewer in the next PR <span class="d">A smaller first PR. The baseline is visible only in MLflow at first.</span></label>
-        <label><input type="radio" name="D7" value="M0-M4 + U1-U2 (through the comparison)"> M0 to M4 and U1 to U2: through the comparison <span class="d">One long PR that reaches the answer.</span></label>
-      </fieldset>
-      <textarea name="D7-note" aria-label="Anything else for the first PR" placeholder="Anything else for the first PR (optional)"></textarea>
-      <div class="row"><button type="submit">Queue D7</button><span class="queued" aria-live="polite"></span></div>
-    </form>
-
-    <form class="q" data-lavish-question="D8" onsubmit="queueAnswer(event)">
-      <h3 data-title="App styling">D8 &middot; Where does the app get its look? <span class="badge rec">rec: house UI</span></h3>
-      <fieldset>
-        <label class="opt-rec"><input type="radio" name="D8" value="import vendored .lavish/house.css + project.css" checked> Import the vendored house UI <span class="d">The colour comes from the registry only, and <code>install-house-ui</code> keeps the app and pages in step. This is the first app to do it, so it sets the pattern.</span></label>
-        <label><input type="radio" name="D8" value="own tokens.css like tau2/vidore"> Own <code>tokens.css</code>, like tau2 and vidore <span class="d">Identical to the siblings. The hex is copied from hue 15 by hand and can drift, as vidore's has.</span></label>
-      </fieldset>
-      <div class="row"><button type="submit">Queue D8</button><span class="queued" aria-live="polite"></span></div>
-    </form>
-
-    <form class="q" data-lavish-question="D9" onsubmit="queueAnswer(event)">
-      <h3 data-title="Project colour">D9 &middot; The project's colour <span class="badge rec">rec: hue 15</span></h3>
-      <fieldset>
-        <label class="opt-rec"><input type="radio" name="D9" value="hue 15" checked> Hue 15, the crimson this page uses <span class="d">The only legal hue. It passes all 140 contrast checks. It sits close to status red, so the app labels its errors.</span></label>
-        <label><input type="radio" name="D9" value="rebalance registry hues"> Move another project's hue to free a different slot <span class="d">Changes a sibling's colour and its pages. That's a platform change; I wouldn't do it without you.</span></label>
-      </fieldset>
-      <div class="row"><button type="submit">Queue D9</button><span class="queued" aria-live="polite"></span></div>
-    </form>
-
-    <form class="q" data-lavish-question="D10" onsubmit="queueAnswer(event)">
-      <h3 data-title="Hybrid rows">D10 &middot; Add hybrid (BM25 + vector) rows? <span class="badge rec">rec: yes</span></h3>
-      <p class="hint">See "Separate or combined?" under the inputs and outputs table.</p>
-      <fieldset>
-        <label class="opt-rec"><input type="radio" name="D10" value="yes: base hybrid in M2, tuned hybrid in M4 (RRF k=60, top 100 each)" checked> Yes: base hybrid in M2, tuned hybrid in M4 <span class="d">Cheap, since BM25 and bge rankings are computed anyway. Shows whether fine-tuning beats adding BM25.</span></label>
-        <label><input type="radio" name="D10" value="no: separate rows only, BM25 stays a floor"> No: separate rows only <span class="d">Simplest. BM25 stays a lower bound, and the result is about vectors alone.</span></label>
-        <label><input type="radio" name="D10" value="yes, and tune the fusion weight on val"> Yes, and tune the fusion weight on val <span class="d">A weighted fusion picked on the val split. Better hybrid numbers, but one more thing to tune.</span></label>
-      </fieldset>
-      <div class="row"><button type="submit">Queue D10</button><span class="queued" aria-live="polite"></span></div>
-    </form>
-
-    <form class="q" data-lavish-question="D11" onsubmit="queueAnswer(event)">
-      <h3 data-title="Container scope">D11 &middot; What goes in the container? <span class="badge rec">rec: train and viewer</span></h3>
-      <fieldset>
-        <label class="opt-rec"><input type="radio" name="D11" value="one Dockerfile, train + viewer targets; amd64 CUDA + arm64 CPU; GHCR; Mac GPU training stays native" checked> Train and viewer images; the Mac trains natively <span class="d">The whole project moves. Mac training keeps its GPU.</span></label>
-        <label><input type="radio" name="D11" value="train image only"> Training image only <span class="d">Smaller. The viewer stays a local <code>make viewer</code>.</span></label>
-        <label><input type="radio" name="D11" value="everything in Docker, including Mac training on CPU"> Everything in Docker, even training on the Mac <span class="d">One way to run everything, but Mac training gets no GPU. Only works if the CPU time is acceptable.</span></label>
-      </fieldset>
-      <p class="hint">Registry: GHCR, which is free for a public repo. Add ECR when AWS Batch arrives (s63 &sect;5).</p>
-      <div class="row"><button type="submit">Queue D11</button><span class="queued" aria-live="polite"></span></div>
-    </form>
-
-  </div>
-
-  <div class="copyall">
-    <button type="button" class="ghost" onclick="(async (btn) => {
-      const copyRun = btn._lavishCopyRun = (btn._lavishCopyRun || 0) + 1;
-      const qs = [...document.querySelectorAll('[data-lavish-question]')];
-      const status = btn.parentElement.querySelector('[data-lavish-copy-all-status]');
-      btn.parentElement.querySelector('[data-lavish-copy-all-manual]')?.remove();
-      const out = [];
-      for (const q of qs) {
-        const key = q.getAttribute('data-lavish-question')?.trim() || 'Question';
-        const lines = [];
-        for (const el of q.querySelectorAll('input, select, textarea')) {
-          if (el.matches(':disabled')) continue;
-          if (el.closest('[data-lavish-question]') !== q) continue;
-          const isChoice = el.matches('input[type=checkbox], input[type=radio]');
-          if (isChoice && !el.checked) continue;
-          if (el.matches('input[type=button], input[type=submit], input[type=reset], input[type=image], input[type=hidden], input[type=file], input[type=range], input[type=color]')) continue;
-          let vals;
-          if (el instanceof HTMLSelectElement) {
-            vals = [...el.selectedOptions].filter((o) => !o.disabled && !o.closest('optgroup[disabled]')).map((o) => o.value.trim()).filter(Boolean);
-          } else {
-            const v = isChoice && (!el.hasAttribute('value') || !el.value.trim())
-              ? el.labels?.[0]?.textContent?.trim() || el.getAttribute('aria-label')?.trim() || el.name || ''
-              : el.value.trim();
-            vals = v ? [v] : [];
-          }
-          const label = el.name || el.labels?.[0]?.textContent?.trim() || el.getAttribute('aria-label')?.trim() || el.getAttribute('placeholder')?.trim() || el.tagName.toLowerCase();
-          for (const v of vals) lines.push('  ' + label + ': ' + v.split('\n').join('\n    '));
-        }
-        if (lines.length) out.push(key + ':\n' + lines.join('\n'));
-      }
-      const text = out.join('\n\n');
-      if (!text) {
-        status.textContent = qs.length ? 'No answers to copy yet.' : 'No questions or answers to copy.';
-        return;
-      }
-      status.textContent = '';
-      try {
-        if (typeof navigator.clipboard?.writeText !== 'function') throw new Error('Clipboard API unavailable');
-        await navigator.clipboard.writeText(text);
-        if (copyRun !== btn._lavishCopyRun) return;
-        status.textContent = 'Answers copied.';
-        return;
-      } catch {}
-      if (copyRun !== btn._lavishCopyRun) return;
-      const tmp = document.createElement('textarea');
-      tmp.value = text;
-      tmp.readOnly = true;
-      tmp.setAttribute('aria-hidden', 'true');
-      tmp.style.position = 'fixed';
-      tmp.style.left = '-10000px';
-      document.body.append(tmp);
-      tmp.focus();
-      tmp.select();
-      let ok = false;
-      try {
-        ok = document.execCommand('copy');
-      } catch {}
-      tmp.remove();
-      if (ok) {
-        status.textContent = 'Answers copied.';
-        return;
-      }
-      btn.parentElement.querySelector('[data-lavish-copy-all-manual]')?.remove();
-      const man = document.createElement('textarea');
-      man.value = text;
-      man.readOnly = true;
-      man.rows = Math.min(12, Math.max(3, text.split('\n').length));
-      man.setAttribute('aria-label', 'Answers to copy manually');
-      man.dataset.lavishCopyAllManual = '';
-      btn.insertAdjacentElement('afterend', man);
-      man.focus();
-      man.select();
-      status.textContent = 'Clipboard unavailable. Copy the answers below manually.';
-    })(this)">Copy all answers</button>
-    <span data-lavish-copy-all-status role="status" aria-live="polite" class="small"></span>
+  <h2>Decisions, answered 2026-10-12</h2>
+  <p class="sub">Your answers from the review. Where one differs from my recommendation, the plan above follows yours.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>ID</th><th>Question</th><th>Answer</th></tr></thead>
+      <tbody>
+        <tr><td class="id">D1</td><td>Base model</td><td>bge-base-en-v1.5</td></tr>
+        <tr><td class="id">D2</td><td>What each question searches</td><td>All 6,757 unique passages</td></tr>
+        <tr><td class="id">D3</td><td>Split</td><td>By passage group, 80/10/10</td></tr>
+        <tr><td class="id">D4</td><td>Where M3 trains</td><td>The Mac first; if it doesn't work, AWS EC2. Built to run on both. <span class="why">The Mac worked: 22 min.</span></td></tr>
+        <tr><td class="id">D5</td><td>Baseline rows</td><td>BM25 and bge-small, beside bge-base</td></tr>
+        <tr><td class="id">D6</td><td>Publishing</td><td>MLflow registry only, until the dataset licence is checked</td></tr>
+        <tr><td class="id">D7</td><td>First PR</td><td>M0 to M4 and U1 to U2, through the comparison <span class="why">(C1 included, as D11 needs it)</span></td></tr>
+        <tr><td class="id">D8</td><td>App styling</td><td>Import the vendored house UI</td></tr>
+        <tr><td class="id">D9</td><td>Project colour</td><td>Hue 15</td></tr>
+        <tr><td class="id">D10</td><td>Hybrid rows</td><td><b>No:</b> separate rows only; BM25 stays a floor <span class="why">(my recommendation was yes)</span></td></tr>
+        <tr><td class="id">D11</td><td>Container scope</td><td>One Dockerfile: train and viewer; amd64 CUDA and arm64 CPU; GHCR; the Mac trains natively</td></tr>
+      </tbody>
+    </table>
   </div>
 </section>
 
@@ -1040,23 +893,5 @@ args = SentenceTransformerTrainingArguments(
 
 </main>
 
-<script>
-  function queueAnswer(e){
-    e.preventDefault();
-    const f = e.currentTarget;
-    const key = f.dataset.lavishQuestion;
-    const title = f.querySelector('h3').dataset.title;
-    const vals = [...f.querySelectorAll('input:checked')].map(i => i.value);
-    const note = (f.querySelector('textarea')?.value || '').trim();
-    if (!vals.length && !note) return;
-    const answer = vals.join(', ');
-    window.lavish?.queuePrompt(
-      'Finance RAG retriever plan (.lavish/s00_finance-rag-retriever-plan.html), decision ' + key + ' (' + title + '): ' +
-      answer + (note ? '. Note: ' + note : '') + '. Update the plan to reflect it and remove the open question.',
-      { tag: 'choice', text: key + ' · ' + title + ': ' + answer + (note ? ' (note)' : ''), element: f,
-        queueKey: key, data: { question: key, answer: vals, note } });
-    f.querySelector('.queued').textContent = 'queued: ' + answer;
-  }
-</script>
 </body>
 </html>
