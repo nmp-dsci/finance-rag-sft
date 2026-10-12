@@ -40,6 +40,7 @@ def write_run(doc: dict[str, Any], results: dict[str, list[QueryResult]] | None 
                 assert rr.qid == r.qid
                 row["ranks"][dim] = {
                     "golden_ranks": rr.golden_ranks,
+                    "golden": [[p, r, round(s, 5)] for p, r, s in rr.golden or []],
                     "top": [[p, round(s, 5)] for p, s in rr.top],
                 }
             lines.append(json.dumps(row, separators=(",", ":")))

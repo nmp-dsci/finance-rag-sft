@@ -34,6 +34,7 @@ class QueryResult:
     qid: str
     golden_ranks: list[int]  # every golden passage's rank, ascending
     top: list[tuple[str, float]]  # the top K (pid, score)
+    golden: list[tuple[str, int, float]] | None = None  # (pid, rank, score), by rank
 
     @property
     def golden_rank(self) -> int:
@@ -53,9 +54,12 @@ def score_matrix(
     for row, qid in enumerate(qids):
         pos = np.empty(len(pids), dtype=np.int64)
         pos[order[row]] = np.arange(1, len(pids) + 1)
-        ranks = sorted(int(pos[index[p]]) for p in golden[qid])
+        gold = sorted(
+            ((p, int(pos[index[p]]), float(scores[row, index[p]])) for p in golden[qid]),
+            key=lambda t: t[1],
+        )
         top = [(pids[j], float(scores[row, j])) for j in order[row, :k]]
-        out.append(QueryResult(qid=qid, golden_ranks=ranks, top=top))
+        out.append(QueryResult(qid=qid, golden_ranks=[r for _, r, _ in gold], top=top, golden=gold))
     return out
 
 
@@ -268,7 +272,11 @@ class BM25Retriever:
         tokenized = bm25s.tokenize(
             list(questions), stopwords="en", stemmer=stemmer, return_ids=False, show_progress=False
         )
-        rows = [np.asarray(index.get_scores(list(toks)), dtype=np.float32) for toks in tokenized]
+        empty = np.zeros(len(split.pids), dtype=np.float32)  # every word a stopword
+        rows = [
+            np.asarray(index.get_scores(list(toks)), dtype=np.float32) if toks else empty
+            for toks in tokenized
+        ]
         return np.vstack(rows) if rows else np.zeros((0, len(split.pids)), dtype=np.float32)
 
 
