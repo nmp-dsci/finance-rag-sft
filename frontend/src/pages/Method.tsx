@@ -9,23 +9,11 @@ import {
   useGet,
 } from '../lib/api';
 import { DASH, delta, int, interval, metric, pText, pct, seconds } from '../lib/format';
-import { type Recipe, bytes, indexBytes, recipeOf, sci } from '../lib/method';
+import { MODEL, type Recipe, bertParams, bytes, indexBytes, recipeOf, sci } from '../lib/method';
 import { LineChart, Loading } from '../lib/ui';
 import { dataPath, overviewPath, runPath, searchPath } from '../lib/url';
+import { Architecture } from './MethodArch';
 import { BatchExample } from './MethodBatch';
-
-/** Verified from the chosen checkpoint (config.json, 1_Pooling, tokenizer) on 2026-10-12. */
-const MODEL = {
-  hub: 'BAAI/bge-base-en-v1.5',
-  revision: 'a5beb1e3',
-  params: 109_482_240,
-  layers: 12,
-  heads: 12,
-  hidden: 768,
-  ffn: 3072,
-  vocab: 30_522,
-  maxTokens: 512,
-};
 
 /** Measured on the M1 Pro on 2026-10-12 (train.py's docstring) and in the check run. */
 const MEASURED = {
@@ -144,7 +132,7 @@ export function Method() {
       <Short f={f} fixed={c?.fixed} broken={c?.broken} />
       <Idea />
       <Pipeline f={f} />
-      <Model f={f} />
+      <Model f={f} trainRun={trainId} />
       <Data f={f} split={split} />
       <Loss rec={rec} />
       <section id="example">
@@ -301,25 +289,11 @@ function Pipeline({ f }: { f: Facts }) {
 }
 
 // ── 3 · the model ────────────────────────────────────────────────────────
-function Model({ f }: { f: Facts }) {
-  const flow: [string, string][] = [
-    ['text', 'question or passage'],
-    ['tokens', `lowercased WordPiece, ≤ ${MODEL.maxTokens}`],
-    ['encoder', `${MODEL.layers} transformer layers`],
-    ['[CLS] vector', `${MODEL.hidden} numbers`],
-    ['normalise', 'length 1, so cosine = dot product'],
-    ['embedding', `${f.rec.matryoshka_dims.join(' / ')} dims`],
-  ];
+function Model({ f, trainRun }: { f: Facts; trainRun: string | null }) {
+  const w = bertParams(MODEL);
   return (
     <Sec id="model" n={3} eyebrow="The model" title={<>The model being tuned: <code>bge-base-en-v1.5</code></>}>
-      <ol className="flow" aria-label="How a text becomes an embedding">
-        {flow.map(([k, v]) => (
-          <li key={k}>
-            <b>{k}</b>
-            <span className="tag">{v}</span>
-          </li>
-        ))}
-      </ol>
+      <Architecture dims={f.rec.matryoshka_dims} trainRun={trainRun} />
       <div className="split">
         <dl className="kv">
           <dt>model</dt>
@@ -332,7 +306,10 @@ function Model({ f }: { f: Facts }) {
             feed-forward {int(MODEL.ffn)}
           </dd>
           <dt>parameters</dt>
-          <dd>{int(MODEL.params)}, every one trained (full fine-tune)</dd>
+          <dd>
+            {int(MODEL.params)} in the checkpoint. A full fine-tune: nothing is frozen, but the {int(w.pooler)} in
+            BERT's unused pooler get no gradient, so {int(w.trained)} change.
+          </dd>
           <dt>tokenizer</dt>
           <dd>WordPiece, {int(MODEL.vocab)}-token vocabulary, lowercases everything (an uncased model)</dd>
           <dt>max length</dt>
@@ -671,7 +648,11 @@ function Optimiser({ rec, train }: { rec: Recipe; train: Run | null }) {
           <dt>precision</dt>
           <dd>float32, no fp16 or bf16</dd>
           <dt>trainable</dt>
-          <dd>all {int(MODEL.params)} parameters; nothing frozen, no adapters</dd>
+          <dd>
+            all {int(MODEL.params)} parameters; nothing frozen, no adapters. The {int(bertParams(MODEL).pooler)} in
+            BERT's pooler sit outside CLS pooling, so they get no gradient and stay as they were (
+            <a href="#model">§3</a>).
+          </dd>
           <dt>epochs · seed</dt>
           <dd>
             {rec.epochs} · {rec.seed} (the seed fixes shuffling; every weight starts from the pre-trained model)

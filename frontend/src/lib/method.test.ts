@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { methodBatch, runTrain } from '../test/fixtures';
-import { RECIPE, bytes, diagStats, indexBytes, lrAt, recipeOf, rescued, sci, warmupSteps } from './method';
+import { MODEL, RECIPE, bertParams, bytes, diagStats, indexBytes, lrAt, recipeOf, rescued, sci, warmupSteps } from './method';
 
 describe('the recipe', () => {
   it('reads the run, and falls back to the config file per key', () => {
@@ -45,6 +45,20 @@ describe('the worked example', () => {
   it("finds questions the base model misses in the corpus and the tuned model doesn't", () => {
     const [base, tuned] = methodBatch.models;
     expect(rescued(base, tuned)).toEqual([1]);
+  });
+});
+
+describe("the model's weights", () => {
+  it('add up, from the shape alone, to the checkpoint’s own count', () => {
+    const p = bertParams(MODEL);
+    expect(p.total).toBe(MODEL.params);
+    expect(p.embeddings).toBe(23_837_184);
+    expect(p.layer).toBe(7_087_872);
+    expect(p.attention).toBe(2_363_904);
+    expect(p.feedForward).toBe(4_723_968);
+    expect(p.layers).toBe(85_054_464);
+    expect(p.pooler).toBe(590_592);
+    expect(p.trained).toBe(108_891_648);
   });
 });
 

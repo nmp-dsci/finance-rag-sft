@@ -374,6 +374,18 @@ describe('/method', () => {
     expect(screen.getAllByText('✓ chosen')).toHaveLength(1);
   });
 
+  it('§3 draws the model: one real question through every stage, and weights that add up', async () => {
+    renderAt(methodPath());
+    await h1(/How bge-base was fine-tuned/);
+    const fig = document.querySelector<HTMLElement>('figure.arch')!;
+    expect(within(fig).getAllByText('##dar')).toHaveLength(2); // tokenized, then dropped by [CLS] pooling
+    expect(within(fig).getByRole('img', { name: 'Share of the weights: embeddings 21.8%, 12 layers 77.7%, pooler 0.5%' })).toBeTruthy();
+    expect(within(fig).getByText('109,482,240', { selector: 'tfoot td' })).toBeTruthy();
+    expect(within(fig).getByText('the embedding: 768 / 512 / 256 / 128 / 64 numbers')).toBeTruthy();
+    // the fixture's train run is not the one the weight changes were measured on, and the page says so
+    expect(within(fig).getByText(/a different run from the one this page describes/)).toBeTruthy();
+  });
+
   it('the worked example shows both matrices and names the question the tuned model rescued', async () => {
     renderAt(methodPath());
     const t = await screen.findByText(/Q2: inside this batch the base model/);

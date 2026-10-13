@@ -5,6 +5,41 @@
  */
 import type { MethodModel, Run } from './api';
 
+/** Verified from the chosen checkpoint (config.json, 1_Pooling, tokenizer) on 2026-10-12. */
+export const MODEL = {
+  hub: 'BAAI/bge-base-en-v1.5',
+  revision: 'a5beb1e3',
+  params: 109_482_240,
+  layers: 12,
+  heads: 12,
+  hidden: 768,
+  ffn: 3072,
+  vocab: 30_522,
+  maxTokens: 512,
+  segments: 2,
+};
+
+/**
+ * Where a BERT encoder's weights are, from its shape alone. Every dense layer is a weight
+ * matrix plus a bias; every LayerNorm is a scale and a shift. `pooler` is BERT's dense + tanh
+ * head on [CLS]: it is in the checkpoint, but CLS pooling reads the hidden state under it.
+ */
+export function bertParams(m: typeof MODEL) {
+  const h = m.hidden;
+  const dense = (i: number, o: number) => i * o + o;
+  const norm = 2 * h;
+  const word = m.vocab * h;
+  const position = m.maxTokens * h;
+  const segment = m.segments * h;
+  const attention = 3 * dense(h, h) + dense(h, h) + norm; // Q, K, V, the output projection, LayerNorm
+  const feedForward = dense(h, m.ffn) + dense(m.ffn, h) + norm;
+  const embeddings = word + position + segment + norm;
+  const layer = attention + feedForward;
+  const pooler = dense(h, h);
+  const total = embeddings + m.layers * layer + pooler;
+  return { word, position, segment, embeddings, attention, feedForward, layer, layers: m.layers * layer, pooler, total, trained: total - pooler };
+}
+
 /** configs/train_bge_base.yaml, for a page rendered before any train run exists. */
 export const RECIPE = {
   base_model: 'bge-base',
