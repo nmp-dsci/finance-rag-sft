@@ -1,0 +1,50 @@
+{
+  "run_id": "20261012-171044-eval-bge-base-tuned-e2",
+  "kind": "eval",
+  "created": "2026-10-12T06:10:44+00:00",
+  "label": "bge-base tuned (epoch 2)",
+  "retriever": {
+    "type": "dense",
+    "model": "BAAI/bge-base-en-v1.5",
+    "revision": "a5beb1e3e68b9ab74eb54cfd186867f64f240e1a",
+    "checkpoint": "outputs/20261012-164453-train-bge-base/checkpoint-350",
+    "train_run": "20261012-164453-train-bge-base",
+    "label": "bge-base tuned (epoch 2)"
+  },
+  "split": "v1",
+  "split_fingerprint": "2a91dcbbb3f974b8",
+  "eval_split": "test",
+  "dims": [
+    "768",
+    "64"
+  ],
+  "n_queries": 693,
+  "n_passages": 6757,
+  "k": 10,
+  "metrics": {
+    "768": {
+      "recall@1": 0.7243867243867244,
+      "recall@5": 0.8961038961038961,
+      "recall@10": 0.9264069264069265,
+      "ndcg@10": 0.8297831378869707,
+      "mrr@10": 0.7990345633202777
+    },
+    "64": {
+      "recall@1": 0.6897546897546898,
+      "recall@5": 0.86002886002886,
+      "recall@10": 0.8961038961038961,
+      "ndcg@10": 0.7946108534908175,
+      "mrr@10": 0.7626709269566413
+    }
+  },
+  "timing": {
+    "encode_queries_768": 5.42,
+    "score_768": 5.73,
+    "encode_queries_64": 1.45,
+    "score_64": 1.77
+  },
+  "device": "mps",
+  "code_sha": "b07c5fa",
+  "mlflow_run_id": "844fb38ddf904237a3fec34596c831a8",
+  "note": ""
+}

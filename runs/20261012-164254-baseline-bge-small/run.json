@@ -1,0 +1,51 @@
+{
+  "run_id": "20261012-164254-baseline-bge-small",
+  "kind": "baseline",
+  "created": "2026-10-12T05:42:54+00:00",
+  "label": "bge-small (base)",
+  "retriever": {
+    "type": "dense",
+    "model": "BAAI/bge-small-en-v1.5",
+    "revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+    "checkpoint": null,
+    "train_run": null,
+    "label": "bge-small (base)"
+  },
+  "split": "v1",
+  "split_fingerprint": "2a91dcbbb3f974b8",
+  "eval_split": "test",
+  "dims": [
+    "384",
+    "64"
+  ],
+  "n_queries": 693,
+  "n_passages": 6757,
+  "k": 10,
+  "metrics": {
+    "384": {
+      "recall@1": 0.6060606060606061,
+      "recall@5": 0.8066378066378066,
+      "recall@10": 0.8556998556998557,
+      "ndcg@10": 0.7330421370524995,
+      "mrr@10": 0.6945051421241897
+    },
+    "64": {
+      "recall@1": 0.49783549783549785,
+      "recall@5": 0.6955266955266955,
+      "recall@10": 0.7604617604617605,
+      "ndcg@10": 0.6257335669804177,
+      "mrr@10": 0.5840204768776197
+    }
+  },
+  "timing": {
+    "encode_corpus": 34.4,
+    "encode_queries_384": 0.54,
+    "score_384": 35.25,
+    "encode_queries_64": 0.53,
+    "score_64": 0.81
+  },
+  "device": "mps",
+  "code_sha": "5a9522c",
+  "mlflow_run_id": "0ed82110ea12482c81421b5cbb4c1eef",
+  "note": ""
+}

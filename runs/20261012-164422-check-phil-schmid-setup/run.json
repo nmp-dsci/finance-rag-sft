@@ -1,0 +1,43 @@
+{
+  "run_id": "20261012-164422-check-phil-schmid-setup",
+  "kind": "check",
+  "created": "2026-10-12T05:44:22+00:00",
+  "label": "bge-base (base)",
+  "retriever": {
+    "type": "dense",
+    "model": "BAAI/bge-base-en-v1.5",
+    "revision": "a5beb1e3e68b9ab74eb54cfd186867f64f240e1a",
+    "checkpoint": null,
+    "train_run": null,
+    "label": "bge-base (base)"
+  },
+  "split": "v1",
+  "split_fingerprint": "2a91dcbbb3f974b8",
+  "eval_split": null,
+  "dims": [
+    "768"
+  ],
+  "n_queries": 700,
+  "n_passages": 6757,
+  "k": 10,
+  "metrics": {
+    "768": {
+      "recall@1": 0.6285714285714286,
+      "recall@5": 0.83,
+      "recall@10": 0.8671428571428571,
+      "ndcg@10": 0.7475570684259726,
+      "mrr@10": 0.7090572562358276
+    }
+  },
+  "timing": {},
+  "device": "mps",
+  "code_sha": "5a9522c",
+  "mlflow_run_id": "2e01650e5d5e44589855833675e7e26d",
+  "note": "harness check, not split v1",
+  "check": {
+    "reference": 0.768,
+    "got": 0.7476,
+    "metric": "ndcg@10 at 768",
+    "note": "Phil Schmid's setup: random 90/10 rows (datasets seed 42), corpus = all 7,000 rows as separate documents, relevant = the question's own row only"
+  }
+}

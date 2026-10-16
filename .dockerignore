@@ -1,0 +1,13 @@
+.git
+.venv
+**/__pycache__
+.mypy_cache
+.ruff_cache
+.pytest_cache
+.env
+.env.*
+data/cache
+outputs
+frontend/node_modules
+frontend/dist
+.lavish/*.html

@@ -1,0 +1,13 @@
+# On a CUDA host (EC2 g6 with the Deep Learning AMI, or any NVIDIA box with the container
+# toolkit): adds the GPU to `train`. MLflow on the Mac is not reachable from there, so set
+# FINRAG_ENV=aws, run with --no-mlflow, copy runs/<id> and outputs/<id> back, then
+# `finrag log-run runs/<id>` on the Mac.
+services:
+  train:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

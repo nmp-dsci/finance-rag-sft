@@ -1,0 +1,76 @@
+name: Images
+
+# Builds the train and viewer images and pushes them to GHCR, tagged by commit:
+#   ghcr.io/nmp-dsci/finance-rag-sft:train-<sha>   (amd64: CUDA 12.6 · arm64: CPU)
+#   ghcr.io/nmp-dsci/finance-rag-sft:viewer-<sha>
+# Each arch builds natively (ubuntu-latest / ubuntu-24.04-arm); a merge job joins the digests.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [train, viewer]
+        platform: [linux/amd64, linux/arm64]
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            arch: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free disk (the CUDA layer is several GB)
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL && df -h /
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: ${{ matrix.target }}
+          platforms: ${{ matrix.platform }}
+          build-args: GIT_SHA=${{ steps.sha.outputs.short }}
+          tags: ${{ env.IMAGE }}:${{ matrix.target }}-${{ steps.sha.outputs.short }}-${{ matrix.arch }}
+          push: true
+          provenance: false
+          cache-from: type=gha,scope=${{ matrix.target }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.target }}-${{ matrix.arch }}
+
+  merge:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [train, viewer]
+    steps:
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Multi-arch tag
+        run: |
+          short=${GITHUB_SHA::7}
+          docker buildx imagetools create -t $IMAGE:${{ matrix.target }}-$short \
+            $IMAGE:${{ matrix.target }}-$short-amd64 $IMAGE:${{ matrix.target }}-$short-arm64

@@ -1,0 +1,40 @@
+{
+  "version": "v1",
+  "dataset": "philschmid/finanical-rag-embedding-dataset",
+  "revision": "e0b17819cf52d444066c99f4a176f5717e066300",
+  "file": "data/train-00000-of-00001.parquet",
+  "file_sha256": "795c963c91533ffb75121e343b249e95b83b7673230dc7a37ab6764ac4e17443",
+  "seed": 42,
+  "fractions": [
+    0.8,
+    0.1,
+    0.1
+  ],
+  "dealt_by": "passage group (passages joined by a shared question), by cumulative question count",
+  "normalisation": "whitespace collapsed; IDs = sha1(normalised text)[:12]",
+  "rows": 7000,
+  "passages": 6757,
+  "queries": {
+    "train": 5547,
+    "val": 693,
+    "test": 693,
+    "total": 6933
+  },
+  "pairs": {
+    "train": 5598,
+    "val": 694,
+    "test": 699
+  },
+  "groups": 6701,
+  "duplicates": {
+    "passages_repeated": 141,
+    "max_repeats": 15,
+    "rows_sharing": 384,
+    "questions_repeated": 53
+  },
+  "multi_golden_queries": 48,
+  "truncated_passages": 2,
+  "fingerprint": "2a91dcbbb3f974b8",
+  "created": "2026-10-12T05:40:41+00:00",
+  "code_sha": "65e1040"
+}

@@ -1,0 +1,39 @@
+{
+  "run_id": "20261012-164216-baseline-bm25",
+  "kind": "baseline",
+  "created": "2026-10-12T05:42:16+00:00",
+  "label": "BM25",
+  "retriever": {
+    "type": "bm25",
+    "model": null,
+    "revision": null,
+    "checkpoint": null,
+    "train_run": null,
+    "label": "BM25"
+  },
+  "split": "v1",
+  "split_fingerprint": "2a91dcbbb3f974b8",
+  "eval_split": "test",
+  "dims": [
+    "lexical"
+  ],
+  "n_queries": 693,
+  "n_passages": 6757,
+  "k": 10,
+  "metrics": {
+    "lexical": {
+      "recall@1": 0.645021645021645,
+      "recall@5": 0.823953823953824,
+      "recall@10": 0.8701298701298701,
+      "ndcg@10": 0.7586811524145946,
+      "mrr@10": 0.7227078036601846
+    }
+  },
+  "timing": {
+    "score_lexical": 0.43
+  },
+  "device": "cpu",
+  "code_sha": "5a9522c",
+  "mlflow_run_id": "67622c27325b4ed295ef8302a9e63b8a",
+  "note": ""
+}

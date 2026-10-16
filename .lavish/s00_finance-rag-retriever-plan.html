@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Finance RAG retriever plan</title>
+<link rel="stylesheet" href="house.css">
+<link rel="stylesheet" href="project.css">
+<style>
+  /* page-local layout only. Tokens come from house.css. */
+  .hero{ border-bottom:1px solid var(--line-2); padding-bottom:var(--s5); margin-bottom:var(--s6); }
+  .verdict{ margin:var(--s5) 0 0; }
+  .stat .l b{ color:var(--ink); }
+  section{ margin-bottom:var(--s8); }
+  .callout{ margin-bottom:var(--s4); }
+
+  /* now / after */
+  .na h3{ display:flex; gap:var(--s2); align-items:center; flex-wrap:wrap; }
+  .na ul{ margin:0; padding-left:var(--s4); font-size:var(--t-1); }
+  .na li{ margin:3px 0; }
+
+  /* metric definition */
+  .metric{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:var(--s3); }
+  .metric > *{ min-width:0; }
+  .metric .formula{ font-family:var(--mono); font-size:var(--t-1); color:var(--ink); background:var(--band);
+                    border:1px solid var(--line); border-radius:var(--r-sm); padding:var(--s2) var(--s3); margin:var(--s2) 0; }
+
+  /* the flow figure */
+  .flow svg{ display:block; width:100%; height:auto; }
+  .flow .node{ fill:var(--panel); stroke:var(--line-3); stroke-width:1.2; }
+  .flow .node.acc{ stroke:var(--accent); stroke-width:1.8; }
+  .flow .node.data{ fill:var(--band); }
+  .flow .t{ font-family:var(--sans); font-size:14px; font-weight:600; fill:var(--ink); }
+  .flow .s{ font-family:var(--sans); font-size:12px; fill:var(--muted); }
+  .flow .lane{ font-family:var(--mono); font-size:11px; letter-spacing:.08em; fill:var(--muted); }
+  .flow .edge{ stroke:var(--line-3); stroke-width:1.4; fill:none; }
+  .flow .edge.acc{ stroke:var(--accent); }
+  .flow .el{ font-family:var(--mono); font-size:11px; fill:var(--muted); }
+  .flow .head{ fill:var(--line-3); }
+  .flow .head.acc{ fill:var(--accent); }
+
+  /* tables */
+  td.id{ font-family:var(--mono); font-size:var(--t-2); color:var(--muted); white-space:nowrap; }
+  td .what{ color:var(--ink); font-weight:600; display:block; }
+  td .why{ color:var(--muted); font-size:var(--t-2); display:block; margin-top:2px; }
+  td .badge{ white-space:nowrap; }
+  tr.gate td{ background:var(--accent-wash); }
+  th.nw{ white-space:nowrap; overflow-wrap:normal; }
+
+  /* code */
+  .code2{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr)); gap:var(--s3); }
+  .code2 > *{ min-width:0; }
+  .code2 pre{ font-size:var(--t-2); }
+  .code2 h3{ font-family:var(--mono); font-size:var(--t-1); font-weight:400; color:var(--muted); }
+
+  /* decisions */
+  form.q .badge{ margin-left:auto; }
+  form.q fieldset{ border:0; padding:0; margin:0; min-width:0; }
+  form.q label.opt-rec{ font-weight:600; }
+  form.q .hint{ font-size:var(--t-2); color:var(--muted); margin:0 0 var(--s2); }
+  form.q textarea{ margin-top:var(--s2); min-height:2.4em; }
+  .copyall{ margin-top:var(--s4); display:flex; gap:var(--s2); align-items:center; flex-wrap:wrap; }
+
+  /* viewer mock */
+  .app{ border:1px solid var(--line-3); border-radius:var(--r); background:var(--bg); overflow:hidden; box-shadow:var(--shadow); }
+  .app-top{ display:flex; flex-wrap:wrap; gap:var(--s2) var(--s4); align-items:center; padding:var(--s2) var(--s4);
+            background:var(--panel); border-bottom:1px solid var(--line-2); }
+  .app-top .brand{ font-family:var(--serif); font-size:var(--t1); color:var(--accent); font-weight:600; }
+  .app-top nav{ display:flex; flex-wrap:wrap; gap:var(--s1) var(--s3); font-size:var(--t-1); }
+  .app-top nav span{ color:var(--muted); padding:2px 0; border-bottom:2px solid transparent; }
+  .app-top nav span.on{ color:var(--ink); border-bottom-color:var(--accent); }
+  .app-top .mode{ margin-left:auto; }
+  .app-body{ padding:var(--s4); }
+  .crumb{ font-family:var(--mono); font-size:var(--t-2); color:var(--muted); margin-bottom:var(--s2); overflow-wrap:anywhere; }
+  .app-body h3.qt{ font-family:var(--serif); font-weight:400; font-size:var(--t2); line-height:var(--lh-snug); margin-bottom:var(--s3); }
+  .kpis{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr)); gap:var(--s2); margin-bottom:var(--s4); }
+  .kpis > *{ min-width:0; }
+  .kpis .stat{ padding:var(--s2) var(--s3); }
+  .kpis .stat .n{ font-size:var(--t3); }
+  .rank-cols{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:var(--s3); }
+  .rank-cols > *{ min-width:0; }
+  .rank-cols h4{ display:flex; gap:var(--s2); align-items:center; flex-wrap:wrap; }
+  ol.rk{ list-style:none; margin:0; padding:0; display:grid; gap:var(--s1); }
+  ol.rk li{ display:grid; grid-template-columns:2.2em minmax(0,1fr) auto; gap:var(--s2); align-items:start;
+            background:var(--panel); border:1px solid var(--line); border-radius:var(--r-sm); padding:var(--s1) var(--s2); font-size:var(--t-2); }
+  ol.rk li .r{ font-family:var(--mono); color:var(--muted); }
+  ol.rk li .sc{ font-family:var(--mono); color:var(--faint); }
+  ol.rk li.gold{ border-color:var(--accent); background:var(--accent-wash); }
+  ol.rk li.gold .r{ color:var(--accent); font-weight:600; }
+  ol.rk li.gap{ background:transparent; border-style:dashed; color:var(--faint); grid-template-columns:minmax(0,1fr); }
+
+  /* hue wheel */
+  .wheel{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr)); gap:var(--s4); align-items:center; }
+  .wheel > *{ min-width:0; }
+  .wheel svg{ display:block; width:100%; max-width:460px; height:auto; margin:0 auto; }
+  .wheel .ring{ fill:none; stroke:var(--line-2); stroke-width:1.2; }
+  .wheel .gapa{ fill:none; stroke:var(--accent); stroke-width:5; stroke-linecap:round; opacity:.35; }
+  .wheel .tk{ stroke:var(--line-3); stroke-width:2; }
+  .wheel .tk.me{ stroke:var(--accent); stroke-width:4; }
+  .wheel .lb{ font-family:var(--mono); font-size:11px; fill:var(--muted); }
+  .wheel .lb.me{ fill:var(--accent); font-weight:600; font-size:12px; }
+  .wheel .cap{ font-family:var(--sans); font-size:12px; fill:var(--faint); }
+  .wheel .dot{ fill:var(--accent); }
+  .sw-me{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr)); gap:var(--s2); margin-top:var(--s3); }
+  .sw-me > *{ min-width:0; }
+  .sw-me .sw .chip{ color:var(--accent-ink); font-family:var(--mono); font-size:var(--t-2); }
+  .sw-me .sw .chip.soft{ background:var(--accent-soft); color:var(--accent); }
+  .src li{ font-size:var(--t-1); }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">finance-rag-sft &middot; Finance RAG retriever &middot; plan &middot; 2026-10-12 &middot; decisions answered &middot; built and run the same day (results first)</p>
+  <h1>Does fine-tuning put the golden passage in the top 10 more often? <em>Score the base model first.</em></h1>
+  <p class="lede">This repo fine-tunes <code>BAAI/bge-base-en-v1.5</code> on finance question and passage pairs, following
+  use case UC1 in <a href="../../ai-engineer-fit/.lavish/s63_fine-tuning-playbook.html">s63, the fine-tuning playbook</a>.
+  The base model and the fine-tuned model are both scored with the same harness, on the same held-out
+  questions and the same passage corpus. The question is whether more test questions end up with their golden
+  passage in the top 10. The baseline (M2) is built and logged before any training starts. The project also gets
+  its own viewer, built the way tau2-loop's and vidore-v3-loop's are, in its own colour: <b>hue 15</b>, the colour
+  this page is shown in.</p>
+  <div class="verdict">
+    <div class="stat"><div class="n">7,000</div><div class="l">question and passage pairs, but only <b>6,757 unique passages</b>. 48 questions have two or more golden passages.</div></div>
+    <div class="stat amber"><div class="n">44 / 700</div><div class="l">test questions whose golden passage is <b>also in train</b> under a random 90/10 split. That is why this plan splits by passage instead.</div></div>
+    <div class="stat"><div class="n">0.768 &rarr; 0.825</div><div class="l">Phil Schmid's reference nDCG@10 for bge-base at 768 dims, base &rarr; tuned, on his own split</div></div>
+    <div class="stat"><div class="n">$0</div><div class="l">M0 to M5 on your M1 Pro. If the Mac is too slow, the fallback is one Modal A10G (the reference run cost <b>$0.07</b>).</div></div>
+    <div class="stat accent"><div class="n">hue 15</div><div class="l">the project's colour. It is the <b>only</b> hue left that is at least 30&deg; from all nine taken hues.</div></div>
+  </div>
+</header>
+
+<section id="results">
+  <h2>Result: 87.2% &rarr; 92.6% of test questions find their golden passage in the top 10</h2>
+  <p class="sub">Built and run on 2026-10-12 on branch <code>kickoff</code>. Split v1 test: 693 questions, each ranking all
+  6,757 passages. Same harness, corpus and (empty) query prompt for every row. Checkpoint chosen on val; test scored once.</p>
+  <div class="verdict">
+    <div class="stat accent"><div class="n">+5.5 pts</div><div class="l">recall@10 at 768 dims, 95% CI <b>+3.6 to +7.4</b>. 42 questions fixed, 4 broken, exact McNemar p = 5&times;10<sup>-9</sup>.</div></div>
+    <div class="stat accent"><div class="n">64 &gt; 768</div><div class="l">tuned at 64 dims (89.6%) beats base at 768 (87.2%): +2.5 pts, CI +0.4 to +4.5, p = 0.027. <b>Target met.</b></div></div>
+    <div class="stat"><div class="n">22 min</div><div class="l">of training on the M1 Pro's GPU (MPS), 700 steps, after the padding and cache fixes. No cloud spend.</div></div>
+    <div class="stat amber"><div class="n">M5 open</div><div class="l">FiQA2018 (out of domain) was outside this PR's scope, so the guardrail is <b>not yet measured</b>.</div></div>
+  </div>
+  <div class="tablewrap" style="margin-top:var(--s4)">
+    <table>
+      <thead><tr><th>Retriever (test, n = 693)</th><th>Recall@10</th><th>nDCG@10</th><th>MRR@10</th><th>Recall@1</th></tr></thead>
+      <tbody>
+        <tr class="gate"><td><span class="what">bge-base fine-tuned, epoch 2, 768 dims</span></td><td class="n">0.926</td><td class="n">0.830</td><td class="n">0.799</td><td class="n">0.724</td></tr>
+        <tr><td><span class="what">bge-base fine-tuned, 64 dims</span></td><td class="n">0.896</td><td class="n">0.795</td><td class="n">0.763</td><td class="n">0.690</td></tr>
+        <tr><td><span class="what">bge-base, 768 dims</span><span class="why">the base this project set out to beat</span></td><td class="n">0.872</td><td class="n">0.756</td><td class="n">0.720</td><td class="n">0.639</td></tr>
+        <tr><td><span class="what">BM25</span><span class="why">bm25s, English stopwords, Snowball stemmer</span></td><td class="n">0.870</td><td class="n">0.759</td><td class="n">0.723</td><td class="n">0.645</td></tr>
+        <tr><td><span class="what">bge-small, 384 dims</span></td><td class="n">0.856</td><td class="n">0.733</td><td class="n">0.695</td><td class="n">0.606</td></tr>
+        <tr><td><span class="what">bge-base, 64 dims</span></td><td class="n">0.792</td><td class="n">0.650</td><td class="n">0.607</td><td class="n">0.521</td></tr>
+        <tr><td><span class="what">bge-small, 64 dims</span></td><td class="n">0.761</td><td class="n">0.626</td><td class="n">0.584</td><td class="n">0.498</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <dl class="kv">
+    <dt>val by epoch</dt><dd>recall@10 at 768: 0.924, <b>0.926</b>, 0.919, 0.922. Epoch 2 (<code>checkpoint-350</code>) chosen; registered as <code>finance-rag-sft-bge-base</code> v1 in MLflow.</dd>
+    <dt>harness check</dt><dd>Phil Schmid's setup: nDCG@10 0.748 against his 0.768. Across 20 split seeds the same setup ranges 0.728 to 0.773 (median 0.746), so the gap is his split's draw, not the harness.</dd>
+    <dt>baselines</dt><dd>BM25 (0.870) all but ties the base bge-base (0.872) and beats bge-small (0.856). The tuned model beats BM25 by 5.6 pts (47 fixed, 8 broken).</dd>
+    <dt>Mac</dt><dd>Sentence Transformers' trainer ran at 15&ndash;20 s/step on MPS. The cause was kernel recompiles for every new padded shape, and then memory growth into swap. Padding to multiples of 64 and emptying the MPS cache each step brought it to ~2 s/step (D4: Mac first held).</dd>
+    <dt>container</dt><dd>arm64 images built locally; <code>finrag smoke</code> inside the train image logged to central MLflow over <code>nmp-central</code>. CI builds the amd64 CUDA 12.6 image.</dd>
+  </dl>
+</section>
+
+<section id="io">
+  <h2>Inputs and outputs, step by step</h2>
+  <p class="sub">One dataset and one base model go in. Two scored rows, a fine-tuned model and a viewer come out. Each
+  step reads only what an earlier step wrote, so any row can be rerun on its own.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Step</th><th>Takes in</th><th>Produces</th><th>Lands in</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="id">M1</td>
+          <td><span class="what">Hub dataset at a pinned commit</span><span class="why"><code>philschmid/finanical-rag-embedding-dataset</code>: 7,000 rows of <code>question</code> and <code>context</code></span></td>
+          <td><span class="what">Split v1</span><span class="why">a corpus of 6,757 passage IDs; train, val and test question IDs (about 80/10/10, by passage); a map from each question to its golden passage(s); a manifest with counts, hashes and the revision</span></td>
+          <td><code>data/splits/v1/</code><span class="why">committed</span></td>
+        </tr>
+        <tr>
+          <td class="id">C1</td>
+          <td><span class="what">The repo at a git SHA and <code>uv.lock</code></span><span class="why">no weights, data or secrets go into the image</span></td>
+          <td><span class="what">Container images</span><span class="why"><code>train</code> for linux/amd64 with CUDA, plus a CPU-only arm64 build for runs on the Mac; <code>viewer</code> with the API and the built app. All are tagged with the git SHA.</span></td>
+          <td>GHCR, <code>ghcr.io/nmp-dsci/finance-rag-sft</code><span class="why">built by GitHub Actions</span></td>
+        </tr>
+        <tr class="gate">
+          <td class="id">M2</td>
+          <td><span class="what">Split v1 (test questions and the whole corpus), plus untouched retrievers, each ranking on its own</span><span class="why">BM25 (keywords), and bge-small-en-v1.5 and bge-base-en-v1.5 (vectors, at 768 and 64 dims).</span></td>
+          <td><span class="what">Baseline rows, one per retriever</span><span class="why">Recall@1, @5 and @10, nDCG@10 and MRR@10 for each retriever and dimension size. Each question's golden rank and top-10 passage IDs.</span></td>
+          <td><code>runs/&lt;id&gt;/</code> and MLflow <code>finance-rag-sft/evals</code><span class="why">kind = baseline</span></td>
+        </tr>
+        <tr>
+          <td class="id">M2</td>
+          <td><span class="what">Phil's random 90/10 setup</span><span class="why">corpus = all 7,000 rows as separate documents; relevant = the question's own row, as in his notebook</span></td>
+          <td><span class="what">Harness check</span><span class="why">bge-base nDCG@10 at 768 dims, to set beside his 0.768</span></td>
+          <td>MLflow<span class="why">kind = check</span></td>
+        </tr>
+        <tr>
+          <td class="id">M3</td>
+          <td><span class="what">bge-base-en-v1.5 weights, the train pairs and the val split</span><span class="why">about 5,600 (question, passage) pairs; config: 4 epochs, lr 2e-5, batch 32, Matryoshka dims 768 to 64</span></td>
+          <td><span class="what">A fine-tuned model</span><span class="why">one checkpoint per epoch, val Recall@10 per epoch, and the chosen checkpoint</span></td>
+          <td>MLflow<span class="why">kind = train. Registered as <code>finance-rag-sft-bge-base</code>. Weights stay out of git.</span></td>
+        </tr>
+        <tr class="gate">
+          <td class="id">M4</td>
+          <td><span class="what">The chosen checkpoint, split v1 test and corpus, and the M2 baseline run</span></td>
+          <td><span class="what">The tuned row and the comparison</span><span class="why">tuned metrics, fixed and broken counts, the exact McNemar p-value and a bootstrap 95% interval for the change, at 768 and 64 dims</span></td>
+          <td><code>runs/&lt;id&gt;/</code>, MLflow and a write-up page<span class="why">kind = eval</span></td>
+        </tr>
+        <tr>
+          <td class="id">M5</td>
+          <td><span class="what">The base and tuned models, and <code>mteb</code>'s FiQA2018 task</span></td>
+          <td><span class="what">An out-of-domain check</span><span class="why">FiQA2018 nDCG@10 for both. Published bge-base: 0.406.</span></td>
+          <td>MLflow<span class="why">kind = fiqa</span></td>
+        </tr>
+        <tr>
+          <td class="id">U1&ndash;U2</td>
+          <td><span class="what">Run folders, split v1, and the retrievers themselves</span><span class="why">read-only, apart from corpus embeddings cached on disk once per model and dimension size</span></td>
+          <td><span class="what">The viewer</span><span class="why">a Data explorer for train, val and test; live retrieval; Runs, Run and Question pages; and the <code>?vs=</code> compare lens</span></td>
+          <td>Browser, <code>:8084</code><span class="why">links to each run in MLflow</span></td>
+        </tr>
+        <tr>
+          <td class="id">M6</td>
+          <td><span class="what">The chosen checkpoint and the M4 and M5 tables</span></td>
+          <td><span class="what">A model card</span><span class="why">plus a Hub push or an MTEB pull request, if D6 says so</span></td>
+          <td>Set by D6<span class="why">MLflow registry only, for now</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout" id="hybrid">
+    <p style="margin-bottom:0"><b>Separate, not combined (D10).</b> Every row is one retriever ranking alone: BM25 by keyword overlap, bge by
+    vector cosine similarity. No hybrid row; BM25 stays a floor. It turned out to be a strong one (0.870 against the base model's 0.872).</p>
+  </div>
+  <p class="small">Network access: the dataset and the three models are downloaded from the Hub once and cached. Everything else stays on your Mac and the central MLflow at <code>localhost:5000</code>, unless D4 sends training to Modal.</p>
+</section>
+
+<section id="goal">
+  <h2>Goal, where we are, where this ends</h2>
+  <p class="sub">One before and after pair, measured honestly. The comparison is complete even if the gain is small or zero.</p>
+  <div class="split na">
+    <div class="card">
+      <h3>Now <span class="badge">2026-10-12</span></h3>
+      <ul>
+        <li>Public repo <a href="https://github.com/nmp-dsci/finance-rag-sft">nmp-dsci/finance-rag-sft</a>, branch <code>kickoff</code>. It holds a README and a <code>.gitignore</code>, nothing else.</li>
+        <li>The project is not in <code>registry/projects.yaml</code>: no MLflow experiment, no hue, no smoke command.</li>
+        <li>No baseline exists. Phil Schmid's 0.768 was measured on his split and his corpus, so it can't be compared with anything we measure.</li>
+        <li>No viewer. The only way to see a result would be the MLflow UI.</li>
+      </ul>
+    </div>
+    <div class="card rec">
+      <h3>After <span class="badge rec">target</span></h3>
+      <ul>
+        <li>A frozen split <code>v1</code>, grouped by passage, with a test that fails if any passage appears in both train and test.</li>
+        <li>A baseline table in central MLflow for BM25, bge-small and bge-base, with hits saved for every question.</li>
+        <li>A fine-tuned bge-base, with the checkpoint chosen on the validation split and scored once on test.</li>
+        <li>Recall@10 for base and tuned, at 768 and 64 dims, with an exact McNemar test on the paired hits. Plus FiQA2018, to check the model didn't get worse outside this dataset.</li>
+        <li>A viewer at <code>:8084</code> in hue 15. It shows every run, every question's golden rank, and base and tuned top-10s side by side. It also lets you browse the training data and run live retrieval.</li>
+        <li>One Docker image, so training moves to any CUDA machine unchanged. The viewer ships the same way.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="metric">
+  <h2>The number: is the golden passage in the top 10?</h2>
+  <p class="sub">For each test question, embed it, rank <b>every</b> passage in the corpus by cosine similarity, and check
+  whether a golden passage lands in the top 10. That is the headline. The other numbers explain why it moved.</p>
+  <div class="metric">
+    <div class="card rec">
+      <h3>Headline &middot; Recall@10</h3>
+      <div class="formula">hits@10 / test questions</div>
+      <p class="small">A hit means at least one golden passage is ranked 1st to 10th. Almost every question has exactly one
+      golden passage, so this is the same as Hit@10 or accuracy@10. Reported as a count as well as a rate.</p>
+    </div>
+    <div class="card">
+      <h3>Supporting &middot; nDCG@10, MRR@10, Recall@1 and @5</h3>
+      <p class="small">If the base model already finds most golden passages in the top 10, Recall@10 has little room to
+      move. These numbers show whether fine-tuning pushes golden passages <b>higher</b> in the list, and they let us
+      compare with Phil's nDCG@10.</p>
+    </div>
+    <div class="card">
+      <h3>Size &middot; 768 dims and 64 dims</h3>
+      <p class="small">Matryoshka training makes the first 64 dimensions a usable embedding on their own. In the reference
+      run, the tuned model at 64 dims beat the base model at 768, which means a 12&times; smaller index. We score both sizes.</p>
+    </div>
+  </div>
+</section>
+
+<section id="flow">
+  <h2>How the two rows are produced</h2>
+  <p class="sub">One frozen split feeds both paths. Both paths end in the <b>same</b> harness, so the only thing that differs is the model.</p>
+  <figure class="fig flow">
+    <svg viewBox="0 0 1152 372" role="img" aria-labelledby="flow-title flow-desc">
+      <title id="flow-title">Baseline and fine-tune paths through one harness</title>
+      <desc id="flow-desc">The dataset is deduplicated and split by passage. The untouched base model and the fine-tuned model are both scored by one harness on the test questions against all passages. A paired McNemar test compares the per-question hits.</desc>
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="ah-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head acc" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+
+      <!-- data row -->
+      <g id="n-hub"><title>Hub dataset: philschmid/finanical-rag-embedding-dataset, 7,000 rows</title>
+        <rect class="node data" x="16" y="20" width="170" height="64" rx="10"/>
+        <text class="t" x="30" y="46">Hub dataset</text>
+        <text class="s" x="30" y="66">7,000 pairs, pinned rev</text></g>
+      <g id="n-split"><title>Frozen split v1: deduplicated passages, split by passage group</title>
+        <rect class="node data" x="216" y="20" width="550" height="64" rx="10"/>
+        <text class="t" x="232" y="46">Frozen split v1 &middot; 6,757 passages, split by passage</text>
+        <text class="s" x="232" y="66">train 80% &middot; val 10% &middot; test 10% &middot; corpus = all passages</text></g>
+      <path id="e-dedupe" class="edge" d="M186,52 L214,52" marker-end="url(#ah)"><title>Deduplicate, then split by passage</title></path>
+
+      <!-- lane labels -->
+      <text class="lane" x="16" y="140">AFTER &middot; M3&ndash;M4</text>
+      <text class="lane" x="16" y="270">BEFORE &middot; M2</text>
+
+      <!-- after lane -->
+      <g id="n-base-a"><title>Start from the same base model</title>
+        <rect class="node" x="16" y="152" width="170" height="64" rx="10"/>
+        <text class="t" x="30" y="178">bge-base-en-v1.5</text>
+        <text class="s" x="30" y="198">110M params, 768 dims</text></g>
+      <g id="n-train"><title>Fine-tune with MultipleNegativesRankingLoss wrapped in MatryoshkaLoss</title>
+        <rect class="node acc" x="216" y="152" width="170" height="64" rx="10"/>
+        <text class="t" x="230" y="178">Fine-tune</text>
+        <text class="s" x="230" y="198">MNRL + Matryoshka</text></g>
+      <g id="n-select"><title>Pick the best epoch on the validation split, never on test</title>
+        <rect class="node acc" x="416" y="152" width="150" height="64" rx="10"/>
+        <text class="t" x="430" y="178">Pick epoch</text>
+        <text class="s" x="430" y="198">best val Recall@10</text></g>
+      <path class="edge acc" d="M186,184 L214,184" marker-end="url(#ah-acc)"/>
+      <path class="edge acc" d="M386,184 L414,184" marker-end="url(#ah-acc)"/>
+      <path class="edge acc" d="M566,184 L594,184" marker-end="url(#ah-acc)"/>
+
+      <!-- split ports -->
+      <path id="e-train" class="edge" d="M301,84 L301,150" marker-end="url(#ah)"><title>Train split feeds training</title></path>
+      <text class="el" x="309" y="122">train</text>
+      <path id="e-val" class="edge" d="M491,84 L491,150" marker-end="url(#ah)"><title>Validation split picks the checkpoint</title></path>
+      <text class="el" x="499" y="122">val</text>
+      <path id="e-test" class="edge" d="M681,84 L681,150" marker-end="url(#ah)"><title>Test questions and the whole corpus go to the harness</title></path>
+      <text class="el" x="689" y="122">test + corpus</text>
+
+      <!-- before lane -->
+      <g id="n-base-b"><title>The untouched base model</title>
+        <rect class="node" x="16" y="282" width="170" height="64" rx="10"/>
+        <text class="t" x="30" y="308">bge-base-en-v1.5</text>
+        <text class="s" x="30" y="328">untouched</text></g>
+      <path id="e-untouched" class="edge" d="M186,314 L594,314" marker-end="url(#ah)"><title>No training on the baseline path</title></path>
+      <text class="el" x="300" y="306">no training &middot; same tokenizer, same prompt</text>
+
+      <!-- shared harness -->
+      <g id="n-harness"><title>One harness scores both models the same way</title>
+        <rect class="node acc" x="596" y="152" width="170" height="194" rx="10"/>
+        <text class="t" x="612" y="206">Same harness</text>
+        <text class="s" x="612" y="230">rank all 6,757</text>
+        <text class="s" x="612" y="248">passages per question</text>
+        <text class="s" x="612" y="272">Recall@10, nDCG@10</text>
+        <text class="s" x="612" y="290">at 768 and 64 dims</text></g>
+
+      <!-- rows -->
+      <g id="n-row-tuned"><title>Tuned row in MLflow, with per-question hits</title>
+        <rect class="node" x="796" y="152" width="130" height="64" rx="10"/>
+        <text class="t" x="810" y="178">Tuned row</text>
+        <text class="s" x="810" y="198">MLflow + hits</text></g>
+      <g id="n-row-base"><title>Baseline row in MLflow, with per-question hits</title>
+        <rect class="node" x="796" y="282" width="130" height="64" rx="10"/>
+        <text class="t" x="810" y="308">Baseline row</text>
+        <text class="s" x="810" y="328">MLflow + hits</text></g>
+      <path class="edge" d="M766,184 L794,184" marker-end="url(#ah)"/>
+      <path class="edge" d="M766,314 L794,314" marker-end="url(#ah)"/>
+
+      <!-- compare -->
+      <g id="n-compare"><title>Paired comparison on the same test questions</title>
+        <rect class="node acc" x="956" y="152" width="180" height="194" rx="10"/>
+        <text class="t" x="972" y="206">Paired compare</text>
+        <text class="s" x="972" y="230">McNemar on hits@10</text>
+        <text class="s" x="972" y="248">bootstrap 95% CI</text>
+        <text class="s" x="972" y="272">then FiQA2018</text>
+        <text class="s" x="972" y="290">out of domain (M5)</text></g>
+      <path class="edge" d="M926,184 L954,184" marker-end="url(#ah)"/>
+      <path class="edge" d="M926,314 L954,314" marker-end="url(#ah)"/>
+    </svg>
+    <figcaption>The test questions and their golden passages are never used in training or to pick a checkpoint. Training
+    passages stay in the corpus, so both models have to rank the golden passage above them.</figcaption>
+  </figure>
+</section>
+
+<section id="data">
+  <h2>What the data looks like, measured today</h2>
+  <p class="sub">I downloaded the 1.1 MB parquet from the Hub and counted it. Nothing in the repo was changed. These counts are the reason for the split design below.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Fact</th><th>Count</th><th>What the plan does about it</th></tr></thead>
+      <tbody>
+        <tr><td><span class="what">Rows (question, context)</span><span class="why">one <code>train</code> split, 2.67 MB</span></td><td class="n">7,000</td><td>Make our own train, val and test splits, and save them as <code>v1</code>.</td></tr>
+        <tr><td><span class="what">Unique passages</span><span class="why">141 passages repeat, up to 15 times each, covering 384 rows</span></td><td class="n">6,757</td><td>Deduplicate passages into IDs. The corpus has each passage once, so a repeated passage can't push other passages out of the top 10.</td></tr>
+        <tr><td><span class="what">Questions with 2+ different golden passages</span><span class="why">the same question text paired with different contexts</span></td><td class="n">48</td><td>Every listed passage counts as golden for that question. A hit on any of them counts.</td></tr>
+        <tr><td><span class="what">Test questions whose passage is also in train, with a random 90/10 split</span><span class="why">my shuffle with seed 42, not <code>datasets</code>' split, so the exact count will differ</span></td><td class="n">44 of 700</td><td><b>Split by passage, not by row.</b> All questions about one passage go to the same split. A test asserts the overlap is zero.</td></tr>
+        <tr><td><span class="what">Passage length</span><span class="why">mostly single sentences or table rows, from <b>many</b> companies' 2023 10-K filings (AT&amp;T, Alphabet, Gilead and others), not only NVIDIA's as s63 says</span></td><td class="n">median 27 words, max 787</td><td>bge truncates at 512 tokens. M1 counts how many passages get cut off and reports it.</td></tr>
+        <tr><td><span class="what">Question length</span></td><td class="n">median 14 words</td><td>Short queries against short passages. Both models get the same query prompt (none, as in the reference run).</td></tr>
+        <tr><td><span class="what">Licence</span><span class="why">the Hub metadata lists none</span></td><td class="n">&mdash;</td><td>Keep the model private until the card is checked (D6).</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="milestones">
+  <h2>Milestones</h2>
+  <p class="sub">M2 is the gate you asked for. No training code runs until the baseline table is in MLflow and the harness check passes. The viewer's first cut (U1) is built with M2, so you can browse the baseline's misses before deciding to train.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>ID</th><th>Work</th><th>Runs on</th><th>Done when</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="id">M0</td>
+          <td><span class="what">Scaffold and join the platform</span>
+            <span class="why">uv project (Python 3.12, <code>sentence-transformers&gt;=6.1</code>, <code>datasets</code>, <code>mlflow&gt;=3.12,&lt;4</code>, <code>rank-bm25</code>, <code>scipy</code>, <code>typer</code>), Ruff, mypy strict and pytest. A registry entry <code>P9</code> with <code>ui: {hue: 15}</code> in nmp-central-ai, then <code>make mlflow-init</code> and <code>install-house-ui</code>. A <code>finrag smoke</code> command that costs nothing: it scores a fixed toy ranking offline, and trains for 20 steps on 50 pairs to time the Mac.</span></td>
+          <td>Mac</td>
+          <td><code>make check ARGS="--only P9"</code> passes, and the 20-step training run gives a time per step.</td>
+        </tr>
+        <tr>
+          <td class="id">C1</td>
+          <td><span class="what">Container</span>
+            <span class="why">One multi-stage <code>Dockerfile</code> with two targets, <code>train</code> and <code>viewer</code>, and a <code>compose.yaml</code> that joins the <code>nmp-central</code> network. CI builds <code>train</code> for amd64 with CUDA torch and for arm64 CPU-only, and <code>viewer</code> for both. Images go to GHCR, tagged by SHA. Details are in "Training in a container" below.</span></td>
+          <td>Mac and CI</td>
+          <td><code>make docker-smoke</code> runs <code>finrag smoke</code> in the arm64 image and logs to central MLflow, and CI publishes both images.</td>
+        </tr>
+        <tr>
+          <td class="id">M1</td>
+          <td><span class="what">Frozen split v1</span>
+            <span class="why">Download at a pinned dataset commit. Normalise whitespace, give each unique passage an ID, and merge golden sets for duplicate questions. Split passage groups 80/10/10 with seed 42. Commit the IDs, the hashes and a manifest, not the text.</span></td>
+          <td>Mac</td>
+          <td><code>test_split_no_leak.py</code> passes, and the manifest records counts, the dataset revision and the truncation count.</td>
+        </tr>
+        <tr class="gate">
+          <td class="id">M2</td>
+          <td><span class="what">Harness and baseline &middot; the gate</span>
+            <span class="why">One <code>score()</code> function: encode the corpus once, rank every passage, and save each question's golden rank. It is cross-checked against Sentence Transformers' <code>InformationRetrievalEvaluator</code>. Separate rows for BM25, bge-small and bge-base at their full size and 64 dims. <b>Harness check:</b> rerun Phil's random 90/10 setup and land close to his 0.768.</span></td>
+          <td>Mac</td>
+          <td>Baseline rows are in <code>finance-rag-sft/evals</code>, each with a run folder <code>runs/&lt;id&gt;/</code> holding per-question ranks, and the harness check is within a small gap of 0.768.</td>
+        </tr>
+        <tr class="gate">
+          <td class="id">U1</td>
+          <td><span class="what">Viewer for the baseline, built alongside M2</span>
+            <span class="why">Copies vidore-v3-loop's layout: a React 18.3 + Vite 5.4 + TypeScript SPA in <code>frontend/</code>, served by FastAPI. The Overview, Data explorer, Runs, Run and Question pages read the run folders and split v1. Live retrieval covers BM25, bge-small, bge-base and the tuned model. Styled with the house UI in hue 15 (D8). Includes the design lint, API tests and a routes test.</span></td>
+          <td>Mac</td>
+          <td><code>make viewer</code> serves <code>:8084</code>, every route renders in vitest, you can open any baseline miss and see its top 10, and a typed question returns results in under a second.</td>
+        </tr>
+        <tr>
+          <td class="id">M3</td>
+          <td><span class="what">Fine-tune</span>
+            <span class="why">MatryoshkaLoss around MultipleNegativesRankingLoss, with dims [768, 512, 256, 128, 64]. 4 epochs, lr 2e-5, batch 32, 10% warmup, the <code>NO_DUPLICATES</code> sampler, fp32 on MPS. Train on the train split only. The evaluator runs on <b>val</b>, not test. Save each epoch.</span></td>
+          <td>Mac natively (MPS), or the <code>train</code> image on a CUDA host</td>
+          <td>One checkpoint chosen by val Recall@10, logged and registered in MLflow.</td>
+        </tr>
+        <tr>
+          <td class="id">M4</td>
+          <td><span class="what">Test once and compare</span>
+            <span class="why">Score the chosen checkpoint with the same <code>score()</code> on test. Compute the Recall@10 change with an exact McNemar test on the paired hits and a bootstrap 95% interval. Same for nDCG@10, at both 768 and 64 dims.</span></td>
+          <td>Mac</td>
+          <td>A table of base, tuned and the change, with counts and p-values, plus a write-up page.</td>
+        </tr>
+        <tr>
+          <td class="id">U2</td>
+          <td><span class="what">Compare view, built alongside M4</span>
+            <span class="why">A <code>?vs=&lt;run&gt;</code> lens on the Run and Question pages, the way tau2-loop does it. It shows the fixed and broken questions, a chart of how each golden rank moved, and the McNemar result taken from <code>compare.py</code>. Live retrieval gains the tuned model as a second column.</span></td>
+          <td>Mac</td>
+          <td>Opening tuned <code>?vs=</code> base shows the same numbers as the M4 table.</td>
+        </tr>
+        <tr>
+          <td class="id">M5</td>
+          <td><span class="what">Out-of-domain check</span>
+            <span class="why"><code>mteb</code> FiQA2018 nDCG@10 for base and tuned. bge-base's published row is 0.406, and our base score should land near it. Reported whether it goes up or down.</span></td>
+          <td>Mac</td>
+          <td>Both FiQA2018 rows are logged, and any drop is stated.</td>
+        </tr>
+        <tr>
+          <td class="id">M6</td>
+          <td><span class="what">Publish (scope set by D6)</span>
+            <span class="why">Model card with the before and after table. Optional Hub push and MTEB pull request that declares the training data.</span></td>
+          <td>Mac</td>
+          <td>Whatever D6 says.</td>
+        </tr>
+        <tr>
+          <td class="id">S1</td>
+          <td><span class="what">Stretch: hard negatives</span>
+            <span class="why">Use the base model to mine each training question's near misses (ranks 10 to 30). Skip any near miss that scores almost as high as the golden passage, since it might answer the question too. Retrain and select on val again.</span></td>
+          <td>Mac</td>
+          <td>A second tuned row, with the gain attributed to the hard negatives.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="viewer">
+  <h2>The viewer: built like vidore-v3-loop's, in its own colour</h2>
+  <p class="sub">tau2-loop and vidore-v3-loop each have a React app in <code>frontend/</code>, served by a FastAPI app over
+  committed run folders. Of the two, vidore's is closest to this project: retrieval runs, ranks for every question, and a train/test split.
+  This project copies its shape. The one change is where the colour comes from.</p>
+
+  <div class="split">
+    <div class="card">
+      <h3>Copied from the sibling apps</h3>
+      <dl class="kv">
+        <dt>stack</dt><dd>React 18.3, Vite 5.4, TypeScript 5.6, react-router-dom 7, vitest 3, plain CSS, npm. FastAPI in <code>src/finance_rag_sft/serving/app.py</code>.</dd>
+        <dt>ports</dt><dd>API <code>:8084</code>, dev UI <code>:5176</code>. This continues tau2 (8081/5174) and vidore (8083/5175). There is no port registry, so these are simply the next free pair.</dd>
+        <dt>data</dt><dd><code>runs/&lt;id&gt;/run.json</code> and <code>queries.jsonl</code>. The run folder is the record. The app never queries MLflow; it links to each run there.</dd>
+        <dt>URLs</dt><dd>tau2's rule: "one id per thing, the path names the subject, the query holds the lens". So a comparison is <code>?vs=</code> on a page, not a separate tab.</dd>
+        <dt>shell</dt><dd><code>Shell.tsx</code>: a sticky top bar with brand, navigation and a health pill, then the page, then a footer showing <code>code_sha</code>.</dd>
+        <dt>make</dt><dd><code>make dev</code> runs the API with reload. <code>make viewer</code> builds the SPA and serves it from the API.</dd>
+        <dt>CI</dt><dd>A frontend job runs typecheck, <code>lint:design</code>, test and build. API tests use <code>TestClient</code>.</dd>
+      </dl>
+    </div>
+    <div class="card rec">
+      <h3>Different on purpose: the colour comes from the registry <span class="badge rec">D8</span></h3>
+      <p class="small">Both sibling apps style themselves from their own <code>tokens.css</code> full of hand-written hex codes, not from the house UI.
+      Their colours have drifted from the registry. vidore's app is orange (<code>#A8440B</code>) while its registry hue, 130, is lime.
+      tau2's app accent <code>#8A2B1D</code> is the same hex as the house status red.</p>
+      <p class="small">This app imports the vendored <code>.lavish/house.css</code> and <code>project.css</code> from <code>main.tsx</code>.
+      Vite bundles the IBM Plex fonts through the relative <code>@import</code>. The colour then comes from <code>ui.hue</code>
+      in the registry and nowhere else. <code>make install-house-ui</code> keeps the app and this page in step. The design lint fails on any hex in <code>frontend/src</code>.</p>
+      <p class="small">No platform rule covers apps yet. nmp-central-ai lists an app scaffold (S7) as "not selected". So this app would be the first to use the house UI, and could become the pattern for others.</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:var(--s5)">Pages</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Route</th><th>Page</th><th>What it shows</th><th class="nw">When</th></tr></thead>
+      <tbody>
+        <tr><td class="k">/</td><td><span class="what">Overview</span></td><td>The headline: Recall@10 for base and tuned at 768 and 64 dims, each milestone's status, and the split it was measured on.</td><td><span class="badge">U1</span></td></tr>
+        <tr><td class="k">/data</td><td><span class="what">Data explorer</span></td><td>Browse <b>train, val and test</b>, with a tab per split, and search over questions and passages. Each question shows its golden passage(s). Each passage shows every question that points at it. Also shows the duplicate groups that were merged, passage and question length distributions, the leak check's status, and, once runs exist, which runs found each test question.</td><td><span class="badge">U1</span></td></tr>
+        <tr><td class="k">/runs</td><td><span class="what">Runs</span></td><td>Every run: model, dims, kind, Recall@1, @5 and @10, nDCG@10, MRR@10, and a link to MLflow.</td><td><span class="badge">U1</span></td></tr>
+        <tr><td class="k">/runs/:run</td><td><span class="what">Run</span></td><td>Metrics for each dimension size, and a table of every question with its golden rank, filterable to misses. Training runs also show val Recall@10 for each epoch.</td><td><span class="badge">U1</span></td></tr>
+        <tr><td class="k">/runs/:run/:qid</td><td><span class="what">Question</span></td><td>The question, its golden passage, and the top 10 with the golden passage highlighted.</td><td><span class="badge">U1</span></td></tr>
+        <tr><td class="k">?vs=:run</td><td><span class="what">Compare lens</span></td><td>On Run: the fixed and broken counts, the McNemar p-value and a chart of rank changes. On Question: both top 10s side by side (mocked below).</td><td><span class="badge">U2</span></td></tr>
+        <tr><td class="k">/search</td><td><span class="what">Live retrieval</span></td><td>Type any question, then pick the retrievers (BM25, bge-small, bge-base, and the tuned model) and the dimension size (768 or 64). See each top 10 with its scores, side by side. If the text matches a dataset question, its golden passage is highlighted. The API loads each model once and reuses cached corpus embeddings, so a query takes milliseconds. It runs on the CPU, so the viewer container needs no GPU.</td><td><span class="badge">U1</span> <span class="badge">U2</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 style="margin-top:var(--s5)">Mock: one question, base against tuned</h3>
+  <p class="small">Drawn with house UI classes in hue 15. The question and passages are real rows from the dataset; <b>the ranks and scores are made up</b>, since nothing has been measured yet. Live retrieval uses the same two-column layout, with a query box and retriever chips in place of the question title.</p>
+  <div class="app" role="img" aria-label="Mock of the Question page with the compare lens">
+    <div class="app-top">
+      <span class="brand">finance-rag-sft</span>
+      <nav aria-label="mock navigation"><span>Overview</span><span>Data</span><span class="on">Runs</span><span>Search</span></nav>
+      <span class="mode badge ok">api ok &middot; a1b2c3d</span>
+    </div>
+    <div class="app-body">
+      <div class="crumb">runs / bge-base-ft-v1-e3 / q-0412 ?vs=bge-base-v1-baseline &middot; split v1 &middot; 768 dims</div>
+      <h3 class="qt">How much did AT&amp;T's common stock dividends per share total in 2023?</h3>
+      <div class="kpis">
+        <div class="stat"><div class="n">14</div><div class="l">golden rank, base</div></div>
+        <div class="stat accent"><div class="n">1</div><div class="l">golden rank, tuned</div></div>
+        <div class="stat"><div class="n">fixed</div><div class="l">miss &rarr; hit at k=10</div></div>
+      </div>
+      <div class="rank-cols">
+        <div>
+          <h4>Base &middot; bge-base-en-v1.5 <span class="badge">baseline</span></h4>
+          <ol class="rk">
+            <li><span class="r">1</span><span>The results of tax audits and changes in tax laws can impact the tax provision recorded by a company.</span><span class="sc">.71</span></li>
+            <li><span class="r">2</span><span>Net premiums written increased from $11,060 million in 2022 to $12,575 million in 2023, reflecting a 13.7% increase.</span><span class="sc">.69</span></li>
+            <li><span class="r">3</span><span>Total ancillary services revenues increased from $1.101 billion in 2022 to $1.299 billion in 2023, representing an increase of $198 million.</span><span class="sc">.68</span></li>
+            <li class="gap"><span>ranks 4&ndash;13 &middot; golden passage not in the top 10</span></li>
+            <li class="gold"><span class="r">14</span><span>Dividends on common stock declared by our Board of Directors totaled $1.11 per share in 2023.</span><span class="sc">.62</span></li>
+          </ol>
+        </div>
+        <div>
+          <h4>Tuned &middot; epoch 3 <span class="badge ok">fixed</span></h4>
+          <ol class="rk">
+            <li class="gold"><span class="r">1</span><span>Dividends on common stock declared by our Board of Directors totaled $1.11 per share in 2023.</span><span class="sc">.84</span></li>
+            <li><span class="r">2</span><span>Net premiums written increased from $11,060 million in 2022 to $12,575 million in 2023, reflecting a 13.7% increase.</span><span class="sc">.66</span></li>
+            <li><span class="r">3</span><span>The results of tax audits and changes in tax laws can impact the tax provision recorded by a company.</span><span class="sc">.61</span></li>
+            <li class="gap"><span>ranks 4&ndash;10</span></li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="margin-top:var(--s6)">The colour: hue 15</h3>
+  <div class="wheel">
+    <svg viewBox="-34 0 474 300" role="img" aria-labelledby="wheel-title wheel-desc">
+      <title id="wheel-title">Registry hues around the colour wheel</title>
+      <desc id="wheel-desc">Nine hues are taken. The only gap at least 30 degrees from all of them is between tau2 at 345 and propertyiq at 45, and it holds exactly one hue: 15.</desc>
+      <circle class="ring" cx="210" cy="150" r="86"/>
+      <path id="w-gap" class="gapa" d="M187.7,66.9 A86,86 0 0 1 270.8,89.2"><title>The only gap: 345 to 45, which allows exactly 15</title></path>
+      <g id="w-taken">
+        <line class="tk" x1="265.2" y1="94.8" x2="276.5" y2="83.5"/><text class="lb" x="286.4" y="77.6">propertyiq 45</text>
+        <line class="tk" x1="286.8" y1="136.5" x2="302.6" y2="133.7"/><text class="lb" x="316.4" y="135.2">data-qa 80</text>
+        <line class="tk" x1="269.8" y1="200.1" x2="282.0" y2="210.4"/><text class="lb" x="292.7" y="223.4">vidore 130</text>
+        <line class="tk" x1="226.2" y1="226.3" x2="229.5" y2="241.9"/><text class="lb" x="232.5" y="259.6">platform 168</text>
+        <line class="tk" x1="183.3" y1="223.3" x2="177.9" y2="238.3"/><text class="lb" x="173.1" y="255.5" text-anchor="end">dabstep 200</text>
+        <line class="tk" x1="134.7" y1="170.2" x2="119.2" y2="174.3"/><text class="lb" x="105.7" y="182.0" text-anchor="end">convfinqa 255</text>
+        <line class="tk" x1="134.7" y1="129.8" x2="119.2" y2="125.7"/><text class="lb" x="105.7" y="126.0" text-anchor="end">transcript-rag 285</text>
+        <line class="tk" x1="154.8" y1="94.8" x2="143.5" y2="83.5"/><text class="lb" x="133.6" y="77.6" text-anchor="end">dataagentbench 315</text>
+        <line class="tk" x1="189.8" y1="74.7" x2="185.7" y2="59.2"/><text class="lb" x="182.0" y="49.7" text-anchor="end">tau2 345</text>
+      </g>
+      <g id="w-me"><title>finance-rag-sft at hue 15: exactly 30 degrees from tau2 and from propertyiq</title>
+        <line class="tk me" x1="230.2" y1="74.7" x2="234.3" y2="59.2"/>
+        <circle class="dot" cx="230.2" cy="74.7" r="4"/>
+        <text class="lb me" x="238.0" y="49.7">finance-rag-sft 15</text>
+      </g>
+      <text class="cap" x="210" y="146" text-anchor="middle">9 taken</text>
+      <text class="cap" x="210" y="162" text-anchor="middle">1 legal slot</text>
+    </svg>
+    <div>
+      <p class="small">The registry requires each project hue to be at least 30&deg; from every other, measured around the circle
+      (<code>scripts/_registry.py</code>, and exactly 30 is allowed). With nine hues taken, the only legal integer is <b>15</b>.
+      It sits exactly 30&deg; from tau2-loop (345, rose) and propertyiq (45, orange). The audit, run in memory without changing anything, passes all 140 contrast
+      checks with 15 added.</p>
+      <p class="small">One caution: 15 is about 16&deg; from the fixed status red. The platform allows this on purpose, but this app must not use plain red
+      for its own errors and expect it to stand out. Errors should carry a label as well as a colour.</p>
+      <div class="sw-me">
+        <div class="sw"><div class="chip">accent</div><div class="meta"><b>light #993845</b><span>dark #ff939c</span></div></div>
+        <div class="sw"><div class="chip soft">accent-soft</div><div class="meta"><b>tints, chips</b><span>from --hue</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="container">
+  <h2>Training in a container, so the project can move</h2>
+  <p class="sub">One image runs <code>finrag train</code> the same way on any machine with an NVIDIA GPU, and a second target
+  ships the viewer. This follows s63 &sect;5's "one container, run two ways". There is one catch on your Mac.</p>
+
+  <div class="callout warn">
+    <p><b>Docker on a Mac can't use the Mac's GPU.</b> Containers run inside a Linux VM, and Apple's Metal (MPS) isn't passed through to it.
+    Inside Docker, training runs on the CPU: your Docker VM has 10 CPUs and 8 GB. So the container is how the project <b>moves</b>
+    to a CUDA machine. On the Mac, the same code and the same <code>uv.lock</code> run natively, so training can use the GPU.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Where</th><th>Command</th><th>Device</th><th>MLflow</th></tr></thead>
+      <tbody>
+        <tr><td><span class="what">Your Mac, natively</span></td><td><code>uv run finrag train --config configs/train_bge_base.yaml</code></td><td>MPS GPU</td><td><code>http://localhost:5000</code></td></tr>
+        <tr><td><span class="what">Your Mac, in the container</span><span class="why">arm64 image</span></td><td><code>docker compose run train smoke</code></td><td>CPU only: smoke runs, and proving the image works</td><td><code>http://mlflow:5000</code> on the <code>nmp-central</code> network</td></tr>
+        <tr><td><span class="what">Any CUDA host</span><span class="why">EC2 g6, Modal, RunPod, a workstation</span></td><td><code>docker run --gpus all -v $PWD/runs:/app/runs ghcr.io/nmp-dsci/finance-rag-sft:train-&lt;sha&gt;</code></td><td>NVIDIA GPU</td><td>The host can't reach your <code>localhost</code>. The run is written to the mounted <code>runs/</code>, then <code>finrag log-run runs/&lt;id&gt;</code> replays it into MLflow from the Mac. This lasts until the platform's M2 puts MLflow on AWS.</td></tr>
+        <tr><td><span class="what">The viewer, anywhere</span></td><td><code>docker compose up viewer</code></td><td>CPU</td><td>links only</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="code2">
+    <div>
+      <h3>Dockerfile &middot; sketch, not built</h3>
+<pre><code># syntax=docker/dockerfile:1.7
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS base   # pin by digest
+WORKDIR /app
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy HF_HOME=/cache/hf
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project --extra train
+COPY src/ src/
+COPY configs/ configs/
+RUN uv sync --frozen --extra train
+
+FROM base AS train            # amd64 gets CUDA torch, arm64 CPU torch
+ENTRYPOINT ["uv", "run", "--no-sync", "finrag"]
+CMD ["train", "--config", "configs/train_bge_base.yaml"]
+
+FROM node:22-slim AS ui
+WORKDIR /src
+COPY .lavish/house.css .lavish/project.css .lavish/
+COPY .lavish/fonts/ .lavish/fonts/
+COPY frontend/ frontend/
+RUN cd frontend &amp;&amp; npm ci &amp;&amp; npm run build
+
+FROM base AS viewer
+COPY --from=ui /src/frontend/dist frontend/dist
+EXPOSE 8084
+CMD ["uv", "run", "--no-sync", "finrag", "serve", "--host", "0.0.0.0", "--port", "8084"]</code></pre>
+    </div>
+    <div>
+      <h3>compose.yaml &middot; sketch</h3>
+<pre><code>services:
+  train:
+    build: { context: ., target: train }
+    image: ghcr.io/nmp-dsci/finance-rag-sft:train-${GIT_SHA:-local}
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      HF_TOKEN: ${HF_TOKEN:-}             # from ~/.env, never baked in
+    volumes: [hf-cache:/cache/hf, ./data:/app/data, ./runs:/app/runs,
+              ./outputs:/app/outputs]
+    networks: [nmp-central]
+  viewer:
+    build: { context: ., target: viewer }
+    ports: ["127.0.0.1:8084:8084"]
+    volumes: [hf-cache:/cache/hf, ./data:/app/data:ro, ./runs:/app/runs:ro]
+    networks: [nmp-central]
+volumes: { hf-cache: {} }
+networks: { nmp-central: { external: true } }
+# compose.gpu.yaml adds the nvidia device reservation on CUDA hosts</code></pre>
+      <h3>pyproject.toml &middot; one lockfile, three torches</h3>
+<pre><code>[tool.uv.sources]
+torch = [
+  { index = "pytorch-cu126", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+  { index = "pytorch-cpu",   marker = "sys_platform == 'linux' and platform_machine == 'aarch64'" },
+]   # macOS keeps PyPI's torch, which has MPS</code></pre>
+    </div>
+  </div>
+
+  <dl class="kv" style="margin-top:var(--s3)">
+    <dt>in the image</dt><dd>The code and the dependencies locked in <code>uv.lock</code>. The viewer target also holds the built app.</dd>
+    <dt>never in it</dt><dd>Model weights (a mounted Hugging Face cache), the dataset (fetched at the pinned revision into <code>data/</code>), run folders, checkpoints (<code>outputs/</code>), and tokens (passed as environment variables).</dd>
+    <dt>build</dt><dd>GitHub Actions builds amd64 with CUDA and arm64 CPU-only, and pushes to GHCR tagged <code>train-&lt;sha&gt;</code> and <code>viewer-&lt;sha&gt;</code>. Each run logs the image tag. Building the CUDA image on the Mac would mean slow amd64 emulation, so it's left to CI.</dd>
+    <dt>platform rules</dt><dd>No Postgres or MLflow service in compose (rule 7). Joining the external <code>nmp-central</code> network is how a sibling reaches <code>mlflow:5000</code>.</dd>
+  </dl>
+</section>
+
+<section id="criteria">
+  <h2>What counts as a result, fixed before M3</h2>
+  <p class="sub">These are written down before training so the result can't move them. If you want different thresholds, annotate this section.</p>
+  <div class="cards">
+    <div class="card"><h3>Floor</h3><p class="small">At 768 dims, the tuned model's Recall@10 on test is above the base model's, and the exact McNemar p-value is below 0.05.</p></div>
+    <div class="card rec"><h3>Target</h3><p class="small">The tuned model at <b>64 dims</b> matches or beats the base model at 768 dims on Recall@10 and nDCG@10. That is the 12&times; smaller index claim.</p></div>
+    <div class="card"><h3>Guardrail</h3><p class="small">FiQA2018 nDCG@10 drops by no more than 0.02. If it drops further, the write-up says the model got worse outside this dataset.</p></div>
+    <div class="card"><h3>Either way</h3><p class="small">Report the counts: how many test questions the tuned model newly gets right and how many it newly gets wrong. With about 700 test questions, every question is worth about 0.14 points.</p></div>
+  </div>
+</section>
+
+<section id="code">
+  <h2>The two pieces of code that matter</h2>
+  <p class="sub">Sketches, not run. The training imports follow s63's Sentence Transformers v6 sketch and will be checked against the installed version in M0.</p>
+  <div class="code2">
+    <div>
+      <h3>src/finance_rag_sft/harness.py &middot; scores any model the same way</h3>
+<pre><code>def score(model, split, dim: int, k: int = 10) -&gt; Scores:
+    pids, passages = split.corpus_ids, split.corpus_text   # all 6,757
+    qids, questions = split.test_ids, split.test_text
+    golden = split.test_golden                             # {qid: {pid, ...}}
+
+    c = model.encode(passages, batch_size=64, convert_to_numpy=True)[:, :dim]
+    q = model.encode(questions, batch_size=64, convert_to_numpy=True)[:, :dim]
+    c /= np.linalg.norm(c, axis=1, keepdims=True)          # re-normalise after
+    q /= np.linalg.norm(q, axis=1, keepdims=True)          # truncating to dim
+
+    order = np.argsort(-(q @ c.T), axis=1)                 # rank every passage
+    rank = {qid: 1 + int(np.flatnonzero(np.isin(pids[o], list(golden[qid])))[0])
+            for qid, o in zip(qids, order)}                # best golden rank, 1 = top
+    hits = np.array(list(rank.values())) &lt;= k
+    return Scores(recall_at_10=hits.mean(), per_query=rank,
+                  ndcg_at_10=ndcg(rank, k), mrr_at_10=mrr(rank, k))</code></pre>
+    </div>
+    <div>
+      <h3>src/finance_rag_sft/compare.py &middot; the paired test</h3>
+<pre><code>def mcnemar(base: dict[str, int], tuned: dict[str, int], k: int = 10):
+    qids = sorted(base)                                    # same questions
+    assert qids == sorted(tuned)
+    fixed  = sum(base[q] &gt; k &gt;= tuned[q] for q in qids)     # tuned gains
+    broken = sum(tuned[q] &gt; k &gt;= base[q] for q in qids)     # tuned loses
+    p = scipy.stats.binomtest(fixed, fixed + broken, 0.5).pvalue
+    return {"fixed": fixed, "broken": broken, "p_exact": p}</code></pre>
+      <h3>src/finance_rag_sft/train.py &middot; the s63 recipe, with val instead of test</h3>
+<pre><code>loss = MatryoshkaLoss(model, MultipleNegativesRankingLoss(model),
+                      matryoshka_dims=[768, 512, 256, 128, 64])
+args = SentenceTransformerTrainingArguments(
+    output_dir=run_dir, num_train_epochs=4,
+    per_device_train_batch_size=32, learning_rate=2e-5,
+    warmup_ratio=0.1, batch_sampler=BatchSamplers.NO_DUPLICATES,
+    eval_strategy="epoch", save_strategy="epoch",
+    load_best_model_at_end=True,
+    metric_for_best_model="eval_val_768_cosine_recall@10")  # val, never test;
+                                                    # exact key confirmed in M0
+# no bf16 / tf32 / fused optimiser on the Mac</code></pre>
+    </div>
+  </div>
+</section>
+
+<section id="platform">
+  <h2>Repo and platform shape</h2>
+  <div class="split">
+    <div class="card">
+      <h3>Files</h3>
+<pre><code>finance-rag-sft/
+  pyproject.toml        uv · ruff · mypy strict
+  Makefile              smoke split baseline train eval fiqa
+                        dev viewer
+  src/finance_rag_sft/
+    cli.py              `finrag` (Typer)
+    data.py             pinned download, dedupe, grouped split
+    harness.py          score() + per-question ranks
+    bm25.py             lexical baseline
+    train.py            MNRL + Matryoshka
+    compare.py          McNemar, bootstrap
+    tracking.py         MLflow tags, run folders
+    serving/app.py      FastAPI :8084, /api + /api/search
+  frontend/             React + Vite SPA (dev :5176)
+    src/main.tsx        imports ../../.lavish/house.css
+    src/routes.tsx      routes as data under Shell
+    src/lib/api.ts      typed get / useGet
+    src/pages/          Overview Data Runs Search
+    scripts/design_lint.mjs
+  configs/              base.yaml, train_bge_base.yaml
+  data/splits/v1/       manifest.json + ids (committed)
+  runs/&lt;id&gt;/           run.json, queries.jsonl (committed)
+  tests/                no-leak, harness, compare, api
+  .lavish/              this page, house UI, project.css
+  Dockerfile            targets: train, viewer
+  compose.yaml          train / viewer on nmp-central
+  .dockerignore
+  .github/workflows/    ci.yml, image.yml (GHCR)</code></pre>
+    </div>
+    <div class="card">
+      <h3>MLflow (central, <code>http://localhost:5000</code>)</h3>
+      <dl class="kv">
+        <dt>experiment</dt><dd><code>finance-rag-sft/evals</code>. Every run has a <code>kind</code> tag: smoke, baseline, train or eval.</dd>
+        <dt>tags</dt><dd><code>project</code>, <code>git_sha</code>, <code>env=local</code>, <code>split=v1</code>, <code>model</code>, <code>dim</code></dd>
+        <dt>metrics</dt><dd>recall@1, @5 and @10, ndcg@10 and mrr@10, per dim</dd>
+        <dt>artifacts</dt><dd>the run folder: <code>run.json</code>, plus <code>queries.jsonl</code> with each question's golden rank and top 10 per dimension size. The same files are committed under <code>runs/</code> for the viewer.</dd>
+        <dt>registry</dt><dd><code>finance-rag-sft-bge-base</code>, the chosen checkpoint</dd>
+        <dt>ids</dt><dd>read from <code>.mlflow-ids.env</code>, never hardcoded</dd>
+      </dl>
+      <p class="small" style="margin-top:var(--s3)">Registering the project changes <code>registry/projects.yaml</code> in nmp-central-ai,
+      which is a separate repo and currently on branch <code>aws-demos-sleep</code>. I'll make that change on its own branch.
+      The entry follows P8's shape, with <code>ui: {hue: 15}</code> and an <code>observability: {backend: mlflow}</code> block.</p>
+    </div>
+  </div>
+</section>
+
+<section id="honest">
+  <h2>Keeping the comparison fair</h2>
+  <div class="steps">
+    <div class="step"><b>Same harness, corpus, questions and query prompt for both models</b>Only the model weights change. The query prompt is empty, as in the reference run.</div>
+    <div class="step"><b>Split by passage, and test that nothing leaks</b>No golden passage from test appears in train. CI fails if one does.</div>
+    <div class="step"><b>Pick the checkpoint on val, and score test once</b>The test split goes through the harness twice in total: once for base and once for the chosen checkpoint.</div>
+    <div class="step"><b>Use a paired test and report counts</b>Use McNemar on the same questions, report how many questions were fixed and broken, and give a bootstrap interval for the change.</div>
+    <div class="step"><b>Check outside the dataset</b>FiQA2018 shows whether the model got better at finance retrieval in general or only at this one filing.</div>
+    <div class="step"><b>One seed is an anecdote</b>If the gain is close to the floor, retrain with seeds 1 and 2 and report all three.</div>
+  </div>
+</section>
+
+<section id="risks">
+  <h2>Risks</h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Risk</th><th>Likelihood</th><th>What the plan does</th></tr></thead>
+      <tbody>
+        <tr><td><span class="what">Little headroom: the base model already finds most golden passages in the top 10</span></td><td><span class="badge warn">likely</span></td><td>Also report nDCG@10, Recall@1 and the 64-dim comparison, where Phil's gap was largest (0.644 &rarr; 0.789). M2 shows how much headroom there is before any training.</td></tr>
+        <tr><td><span class="what">Near-duplicate passages that aren't exact copies leak across splits</span></td><td><span class="badge warn">possible</span></td><td>Normalise whitespace before deduplicating. M1 reports the closest test and train passage pairs, and anything above a similarity threshold joins the same group.</td></tr>
+        <tr><td><span class="what">Another passage also answers the question, so a correct answer counts as a miss</span></td><td><span class="badge warn">possible</span></td><td>This affects both models the same way. Check 30 test misses by hand and report what share are really correct.</td></tr>
+        <tr><td><span class="what">Training on the Mac GPU (MPS) fails or is slow</span></td><td><span class="badge info">unknown</span></td><td>The 20-step smoke run in M0 settles it. The fallback is one Modal A10G (the reference run took 3 min 26 s).</td></tr>
+        <tr><td><span class="what">Sentence Transformers v6 moved its imports, and Phil's notebook pins old versions</span></td><td><span class="badge info">known</span></td><td>Use the v6 imports, pin versions in <code>uv.lock</code>, and confirm them in M0.</td></tr>
+        <tr><td><span class="what">The dataset has no stated licence</span></td><td><span class="badge info">known</span></td><td>Keep the model in the MLflow registry only until the card is checked (D6).</td></tr>
+        <tr><td><span class="what">The first app to use the house UI hits a snag: Vite won't serve <code>../.lavish/</code> in dev, or the font paths break</span></td><td><span class="badge info">unknown</span></td><td>Set <code>server.fs.allow: ['..']</code>, and check the build bundles <code>fonts/*.woff2</code> in U1. If either fails, copy the vendored files into <code>frontend/src/house/</code> with a make target and check them with <code>cmp</code>.</td></tr>
+        <tr><td><span class="what">Training in Docker on the Mac is CPU-only</span></td><td><span class="badge info">known</span></td><td>Train on the Mac natively (MPS), or with the image on a CUDA host. The Mac container is for smoke runs and proving the image.</td></tr>
+        <tr><td><span class="what">The CUDA image is several GB, and building amd64 on an ARM Mac is slow</span></td><td><span class="badge info">known</span></td><td>Build in CI on amd64 runners, push to GHCR, and keep weights out of the image. The arm64 CPU image is small enough to build locally.</td></tr>
+        <tr><td><span class="what">The image's CUDA version is newer than the host's driver</span></td><td><span class="badge warn">possible</span></td><td>Pin the CUDA wheel index (cu126; torch 2.14.1 has no cu128 build), and have <code>finrag doctor</code> check <code>nvidia-smi</code> and the torch CUDA version before training starts.</td></tr>
+        <tr><td><span class="what">Hue 15 reads close to status red</span></td><td><span class="badge warn">likely</span></td><td>Every error state carries a text label and an icon as well as colour. "Broken" questions in the compare view get a <code>bad</code> badge with a label, not red alone.</td></tr>
+        <tr><td><span class="what">Committed run folders get large</span></td><td><span class="badge">low</span></td><td>About 700 test questions &times; 10 IDs &times; 2 dimension sizes is a few hundred kB per run. Store passage IDs, not text; the API joins the text.</td></tr>
+        <tr><td><span class="what">Central MLflow is down</span></td><td><span class="badge">operational</span></td><td>Run <code>make -C ../nmp-central-ai up</code>. Never fall back to a local sqlite or file store.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="decisions">
+  <h2>Decisions, answered 2026-10-12</h2>
+  <p class="sub">Your answers from the review. Where one differs from my recommendation, the plan above follows yours.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>ID</th><th>Question</th><th>Answer</th></tr></thead>
+      <tbody>
+        <tr><td class="id">D1</td><td>Base model</td><td>bge-base-en-v1.5</td></tr>
+        <tr><td class="id">D2</td><td>What each question searches</td><td>All 6,757 unique passages</td></tr>
+        <tr><td class="id">D3</td><td>Split</td><td>By passage group, 80/10/10</td></tr>
+        <tr><td class="id">D4</td><td>Where M3 trains</td><td>The Mac first; if it doesn't work, AWS EC2. Built to run on both. <span class="why">The Mac worked: 22 min.</span></td></tr>
+        <tr><td class="id">D5</td><td>Baseline rows</td><td>BM25 and bge-small, beside bge-base</td></tr>
+        <tr><td class="id">D6</td><td>Publishing</td><td>MLflow registry only, until the dataset licence is checked</td></tr>
+        <tr><td class="id">D7</td><td>First PR</td><td>M0 to M4 and U1 to U2, through the comparison <span class="why">(C1 included, as D11 needs it)</span></td></tr>
+        <tr><td class="id">D8</td><td>App styling</td><td>Import the vendored house UI</td></tr>
+        <tr><td class="id">D9</td><td>Project colour</td><td>Hue 15</td></tr>
+        <tr><td class="id">D10</td><td>Hybrid rows</td><td><b>No:</b> separate rows only; BM25 stays a floor <span class="why">(my recommendation was yes)</span></td></tr>
+        <tr><td class="id">D11</td><td>Container scope</td><td>One Dockerfile: train and viewer; amd64 CUDA and arm64 CPU; GHCR; the Mac trains natively</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="sources">
+  <h2>Where the facts come from</h2>
+  <ul class="src">
+    <li><b>Measured today (2026-10-12):</b> the dataset counts, read from the Hub's parquet export of <code>philschmid/finanical-rag-embedding-dataset</code> (1,085,849 bytes) with pyarrow. The 44 / 700 leak count uses a Python shuffle with seed 42, so it shows the size of the problem, not the exact count for any one split. A sample of rows shows passages from several companies' filings, which corrects s63's "NVIDIA's 2023 10-K".</li>
+    <li><b>From s63 (checked 10 Oct 2026, not rerun):</b> the UC1 recipe, Phil Schmid's 0.768 &rarr; 0.825 and 0.644 &rarr; 0.789, the FiQA2018 rows (MiniLM-L6 0.369, bge-small 0.403, bge-base 0.406), the $0.07 and 3 min 26 s A10G reference run, and the Sentence Transformers v6 import paths.</li>
+    <li><b>From the platform (read only):</b> the MLflow URL, experiment naming, required tags and the house UI come from <code>nmp-central-ai/PLATFORM.md</code>. The nine taken hues come from <code>registry/projects.yaml</code>. The 30&deg; rule and its inclusive circular distance come from <code>scripts/_registry.py</code>. The 140-check contrast pass for hue 15 came from running <code>house_ui_audit.audit()</code> in memory. Nothing was written and no make target was run. That the app-scaffold item S7 is "not selected" comes from <code>ai_specs/s05_house_ui.md</code>.</li>
+    <li><b>From the sibling apps (read only):</b> the stack, ports, run-folder API, URL rule, shell layout, design lint and CI job come from tau2-loop's and vidore-v3-loop's <code>frontend/</code>, <code>serving/app.py</code>, <code>Makefile</code> and <code>AGENTS.md</code>. The accent hex codes come from each app's <code>src/tokens.css</code>.</li>
+    <li><b>Container:</b> the pattern is s63 &sect;5, "one container, run two ways". The local Docker figures (version 29.2, arm64, 10 CPUs, 8 GB) come from <code>docker info</code>. Nothing was built.</li>
+    <li><b>Estimates:</b> Mac training speed (not measured until M0), and the claim that Recall@10 headroom may be small (M2 measures it).</li>
+  </ul>
+</section>
+
+</main>
+
+</body>
+</html>
