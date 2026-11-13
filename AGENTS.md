@@ -1,6 +1,6 @@
 # AGENTS.md — finance-rag-sft
 
-The source of truth for how this project is built and why. `CLAUDE.md` points here.
+The source of truth for how this project is built and why. The quick reference and rules that bite are at the end.
 The plan lives in `.lavish/s00_finance-rag-retriever-plan.html` (never gitignored).
 
 ## 1 · What it is
@@ -67,3 +67,21 @@ make viewer                        # http://127.0.0.1:8084
 On a CUDA host (D4's fallback): pull `ghcr.io/nmp-dsci/finance-rag-sft:train-<sha>`, run with
 `compose.gpu.yaml` and `--no-mlflow`, copy `runs/<id>` and `outputs/<id>` back, then
 `finrag log-run runs/<id>` on the Mac.
+
+## Quick reference
+
+- `make smoke` · `make baseline` · `make train` · `make eval TRAIN_RUN=<id>` · `make viewer`
+- `uv run pytest -q` · `make lint`
+- MLflow: central (`make platform-up` → `make -C ../nmp-central-ai up`) → http://localhost:5000
+
+## Rules
+
+- **The test split is scored, never optimised on.** Checkpoints are chosen on val;
+  `finrag eval` refuses a second test run of the same checkpoint without `--force`.
+- **Split v1 is frozen.** A change is a new version (`data/splits/v2/`), never an edit to v1.
+- **The dataset is pinned** (`config.DATASET_REVISION`); load through `finance_rag_sft.data`.
+- **Run folders are the record**; MLflow replays them. Never fall back to a local MLflow store.
+- **Same treatment for base and tuned**: same harness, corpus, questions and (empty) query prompt.
+- **Colour comes from the registry** (hue 15 in nmp-central-ai's `registry/projects.yaml`):
+  no hex in `frontend/src`; never edit `.lavish/house.css`.
+- `data/cache/` and `outputs/` are never committed. Never add `.lavish/` to `.gitignore`.
